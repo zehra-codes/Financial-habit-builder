@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Welcome from './components/Welcome'
 import heroImg from './assets/hero.png'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
@@ -20,6 +21,7 @@ function App() {
           <p>
             <p>Track your money, build better habits, and grow your wealth.</p>
           </p>
+          <Welcome />
         </div>
         <button
           type="button"
