@@ -1,7 +1,4 @@
-function Welcome() {
-  const name = "Qunoot";
-  const income = 15000;
-  const expenses = 6500;
+function Welcome({ name, income, expenses }) {
 
   return (
     <div>

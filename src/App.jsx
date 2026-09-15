@@ -1,124 +1,61 @@
-import { useState } from 'react'
-import Welcome from './components/Welcome'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
+import Navbar from "./components/Navbar";
+import Welcome from "./components/Welcome";
+import FinancialSummary from "./components/FinancialSummary";
 
 function App() {
-  const [count, setCount] = useState(0)
-
+  const userName = "Qunoot";
+  const [income, setIncome] = useState(25000);
+  const [expenses, setExpenses] = useState(15000);
+  const [incomeInput, setIncomeInput] = useState(25000);
+  const [expensesInput, setExpensesInput] = useState(15000);
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Financial Habit Builder</h1>
-          <p>
-            <p>Track your money, build better habits, and grow your wealth.</p>
-          </p>
-          <Welcome />
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <Navbar />
 
-      <div className="ticks"></div>
+      <main>
+        <section>
+  <h2>Update Your Finances</h2>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  <div>
+    <label>Income: </label>
+    <input
+      type="number"
+      value={incomeInput}
+      onChange={(event) => setIncomeInput(event.target.value)}
+    />
+  </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+  <div>
+    <label>Expenses: </label>
+    <input
+      type="number"
+      value={expensesInput}
+      onChange={(event) => setExpensesInput(event.target.value)}
+    />
+  </div>
+
+  <button
+    onClick={() => {
+      setIncome(Number(incomeInput));
+      setExpenses(Number(expensesInput));
+    }}
+  >
+    Update Financial Data
+  </button>
+</section>
+        <Welcome
+          name={userName}
+          income={income}
+          expenses={expenses}
+        />
+        <FinancialSummary
+            income={income}
+            expenses={expenses}
+/>
+      </main>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
