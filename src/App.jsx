@@ -2,6 +2,7 @@ import { useState } from "react";
 import Navbar from "./components/Navbar";
 import Welcome from "./components/Welcome";
 import FinancialSummary from "./components/FinancialSummary";
+import TransactionTracker from "./components/TransactionTracker";
 
 function App() {
   const userName = "Qunoot";
@@ -53,6 +54,7 @@ function App() {
             income={income}
             expenses={expenses}
 />
+<TransactionTracker />
       </main>
     </>
   );
