@@ -14,11 +14,15 @@ function App() {
   const [incomeInput, setIncomeInput] = useState(25000);
   const [expensesInput, setExpensesInput] = useState(15000);
 
+  // Main transaction data for the whole dashboard
+  const [transactions, setTransactions] = useState([]);
+
   return (
     <>
       <Navbar />
 
       <main className="dashboard">
+
         {/* Update Financial Data */}
         <section className="finance-update card">
           <div className="section-heading">
@@ -32,24 +36,32 @@ function App() {
           <div className="update-form">
             <div className="input-group">
               <label>Income</label>
+
               <div className="input-wrapper">
                 <span>₹</span>
+
                 <input
                   type="number"
                   value={incomeInput}
-                  onChange={(event) => setIncomeInput(event.target.value)}
+                  onChange={(event) =>
+                    setIncomeInput(event.target.value)
+                  }
                 />
               </div>
             </div>
 
             <div className="input-group">
               <label>Expenses</label>
+
               <div className="input-wrapper">
                 <span>₹</span>
+
                 <input
                   type="number"
                   value={expensesInput}
-                  onChange={(event) => setExpensesInput(event.target.value)}
+                  onChange={(event) =>
+                    setExpensesInput(event.target.value)
+                  }
                 />
               </div>
             </div>
@@ -77,10 +89,15 @@ function App() {
         <FinancialSummary
           income={income}
           expenses={expenses}
+          transactions={transactions}
         />
 
         {/* Transaction Tracker */}
-        <TransactionTracker />
+        <TransactionTracker
+          transactions={transactions}
+          setTransactions={setTransactions}
+        />
+
       </main>
     </>
   );

@@ -1,8 +1,6 @@
 import { useState } from "react";
 
-function TransactionTracker() {
-  const [transactions, setTransactions] = useState([]);
-
+function TransactionTracker({ transactions, setTransactions }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("Income");
@@ -180,56 +178,75 @@ function TransactionTracker() {
         </div>
       </div>
 
-      {/* Bar Graph */}
-      <div className="chart-section">
-        <div className="sub-heading">
-          <div>
-            <h3>Transaction Trend</h3>
-            <p>
-              See how large your income and expenses are compared with each
-              other.
-            </p>
-          </div>
+     {/* Income vs Expense Chart */}
+<div className="chart-section">
+  <div className="sub-heading">
+    <div>
+      <h3>Income vs Expenses</h3>
+      <p>Compare your total income and spending.</p>
+    </div>
+  </div>
+
+  {transactions.length === 0 ? (
+    <div className="chart-empty">
+      Add transactions to see your income and expenses.
+    </div>
+  ) : (
+    <div className="comparison-chart">
+
+      <div className="comparison-item">
+        <div className="comparison-label">
+          <span>Income</span>
+          <strong>₹{totalIncome.toLocaleString("en-IN")}</strong>
         </div>
 
-        {transactions.length === 0 ? (
-          <div className="chart-empty">
-            Add transactions to see your financial trend.
-          </div>
-        ) : (
-          <div className="chart">
-            {transactions.map((transaction) => {
-              const barHeight =
-                highestAmount > 0
-                  ? Math.max((transaction.amount / highestAmount) * 100, 8)
-                  : 8;
-
-              return (
-                <div className="bar-column" key={transaction.id}>
-                  <div className="bar-value">
-                    ₹{transaction.amount.toLocaleString("en-IN")}
-                  </div>
-
-                  <div className="bar-area">
-                    <div
-                      className={`bar ${
-                        transaction.type === "Income"
-                          ? "income-bar"
-                          : "expense-bar"
-                      }`}
-                      style={{ height: `${barHeight}%` }}
-                    ></div>
-                  </div>
-
-                  <span className="bar-label">
-                    {transaction.description}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="comparison-bar-background">
+          <div
+            className="comparison-bar income-bar"
+            style={{
+              width: `${
+                Math.max(
+                  totalIncome,
+                  totalExpenses
+                ) > 0
+                  ? (totalIncome /
+                      Math.max(totalIncome, totalExpenses)) *
+                    100
+                  : 0
+              }%`,
+            }}
+          ></div>
+        </div>
       </div>
+
+      <div className="comparison-item">
+        <div className="comparison-label">
+          <span>Expenses</span>
+          <strong>₹{totalExpenses.toLocaleString("en-IN")}</strong>
+        </div>
+
+        <div className="comparison-bar-background">
+          <div
+            className="comparison-bar expense-bar"
+            style={{
+              width: `${
+                Math.max(
+                  totalIncome,
+                  totalExpenses
+                ) > 0
+                  ? (totalExpenses /
+                      Math.max(totalIncome, totalExpenses)) *
+                    100
+                  : 0
+              }%`,
+            }}
+          ></div>
+        </div>
+      </div>
+
+    </div>
+  )}
+</div>
     </section>
   );
 }
