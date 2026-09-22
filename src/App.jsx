@@ -1,8 +1,13 @@
 import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import Navbar from "./components/Navbar";
-import Welcome from "./components/Welcome";
-import FinancialSummary from "./components/FinancialSummary";
-import TransactionTracker from "./components/TransactionTracker";
+
+import Dashboard from "./pages/Dashboard";
+import IncomeExpenses from "./pages/IncomeExpenses";
+import SavingsGoals from "./pages/SavingsGoals";
+import Habits from "./pages/Habits";
+
 import "./App.css";
 
 function App() {
@@ -18,88 +23,69 @@ function App() {
   const [transactions, setTransactions] = useState([]);
 
   return (
-    <>
+    <BrowserRouter>
       <Navbar />
 
-      <main className="dashboard">
-
-        {/* Update Financial Data */}
-        <section className="finance-update card">
-          <div className="section-heading">
-            <div>
-              <span className="section-label">FINANCIAL INPUT</span>
-              <h2>Update Your Finances</h2>
-              <p>Keep your monthly income and expenses up to date.</p>
-            </div>
-          </div>
-
-          <div className="update-form">
-            <div className="input-group">
-              <label>Income</label>
-
-              <div className="input-wrapper">
-                <span>₹</span>
-
-                <input
-                  type="number"
-                  value={incomeInput}
-                  onChange={(event) =>
-                    setIncomeInput(event.target.value)
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="input-group">
-              <label>Expenses</label>
-
-              <div className="input-wrapper">
-                <span>₹</span>
-
-                <input
-                  type="number"
-                  value={expensesInput}
-                  onChange={(event) =>
-                    setExpensesInput(event.target.value)
-                  }
-                />
-              </div>
-            </div>
-
-            <button
-              className="primary-button"
-              onClick={() => {
-                setIncome(Number(incomeInput));
-                setExpenses(Number(expensesInput));
-              }}
-            >
-              Update Financial Data
-            </button>
-          </div>
-        </section>
-
-        {/* Welcome */}
-        <Welcome
-          name={userName}
-          income={income}
-          expenses={expenses}
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Dashboard
+              userName={userName}
+              income={income}
+              expenses={expenses}
+              setIncome={setIncome}
+              setExpenses={setExpenses}
+              incomeInput={incomeInput}
+              expensesInput={expensesInput}
+              setIncomeInput={setIncomeInput}
+              setExpensesInput={setExpensesInput}
+              transactions={transactions}
+              setTransactions={setTransactions}
+            />
+          }
         />
 
-        {/* Financial Summary */}
-        <FinancialSummary
-          income={income}
-          expenses={expenses}
-          transactions={transactions}
+        <Route
+          path="/dashboard"
+          element={
+            <Dashboard
+              userName={userName}
+              income={income}
+              expenses={expenses}
+              setIncome={setIncome}
+              setExpenses={setExpenses}
+              incomeInput={incomeInput}
+              expensesInput={expensesInput}
+              setIncomeInput={setIncomeInput}
+              setExpensesInput={setExpensesInput}
+              transactions={transactions}
+              setTransactions={setTransactions}
+            />
+          }
         />
 
-        {/* Transaction Tracker */}
-        <TransactionTracker
-          transactions={transactions}
-          setTransactions={setTransactions}
+        <Route
+          path="/income-expenses"
+          element={
+            <IncomeExpenses
+              transactions={transactions}
+              setTransactions={setTransactions}
+            />
+          }
         />
 
-      </main>
-    </>
+        <Route
+          path="/savings-goals"
+          element={<SavingsGoals />}
+        />
+
+        <Route
+          path="/habits"
+          element={<Habits />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

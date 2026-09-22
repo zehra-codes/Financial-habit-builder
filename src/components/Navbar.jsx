@@ -1,13 +1,15 @@
+import { NavLink } from "react-router-dom";
+
 function Navbar() {
   return (
     <nav>
       <h2>Financial Habit Builder</h2>
 
       <div>
-        <a href="#">Dashboard</a>
-        <a href="#">Income & Expenses</a>
-        <a href="#">Habits</a>
-        <a href="#">Savings Goals</a>
+        <NavLink to="/dashboard">Dashboard</NavLink>
+        <NavLink to="/income-expenses">Income & Expenses</NavLink>
+        <NavLink to="/habits">Habits</NavLink>
+        <NavLink to="/savings-goals">Savings Goals</NavLink>
       </div>
     </nav>
   );
