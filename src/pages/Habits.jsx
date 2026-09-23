@@ -22,13 +22,16 @@ function Habits() {
   const [habitName, setHabitName] = useState("");
 
   function addHabit() {
-    if (!habitName.trim()) {
+    const trimmedName = habitName.trim();
+
+    if (!trimmedName) {
+      alert("Please enter a habit name.");
       return;
     }
 
     const newHabit = {
       id: Date.now(),
-      name: habitName,
+      name: trimmedName,
       completed: false,
     };
 
@@ -47,17 +50,28 @@ function Habits() {
   }
 
   function deleteHabit(id) {
-    setHabits(habits.filter((habit) => habit.id !== id));
+    setHabits(
+      habits.filter((habit) => habit.id !== id)
+    );
   }
 
   const completedHabits = habits.filter(
     (habit) => habit.completed
   ).length;
 
+  const totalHabits = habits.length;
+
+  const completionPercentage =
+    totalHabits === 0
+      ? 0
+      : Math.round((completedHabits / totalHabits) * 100);
+
   return (
     <main className="dashboard">
 
+      {/* Add Habit */}
       <section className="card">
+
         <div className="section-heading">
           <div>
             <span className="section-label">DAILY HABITS</span>
@@ -78,10 +92,16 @@ function Habits() {
               onChange={(event) =>
                 setHabitName(event.target.value)
               }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  addHabit();
+                }
+              }}
             />
           </div>
 
           <button
+            type="button"
             className="primary-button"
             onClick={addHabit}
           >
@@ -89,59 +109,93 @@ function Habits() {
           </button>
 
         </div>
+
       </section>
 
+      {/* Today's Progress */}
       <section className="card">
 
         <div className="section-heading">
           <div>
-            <span className="section-label">TODAY'S PROGRESS</span>
+            <span className="section-label">
+              TODAY'S PROGRESS
+            </span>
+
             <h2>My Financial Habits</h2>
 
             <p>
-              {completedHabits} of {habits.length} habits completed today.
+              {completedHabits} of {totalHabits} habits completed today.
             </p>
           </div>
+
+          <strong>
+            {completionPercentage}%
+          </strong>
         </div>
 
-        {habits.map((habit) => (
-          <div
-            key={habit.id}
-            className="habit-card"
-          >
+        {/* Habit List */}
+        {habits.length === 0 ? (
 
-            <div>
-              <h2>{habit.name}</h2>
+          <div className="empty-state">
+            <div className="empty-icon">✓</div>
 
-              <p>
-                {habit.completed
-                  ? "☑ Completed today"
-                  : "☐ Not completed yet"}
-              </p>
-            </div>
+            <h4>No habits yet</h4>
 
-            <div>
+            <p>
+              Add your first financial habit above to start tracking.
+            </p>
+          </div>
 
-              <button
-                className="primary-button"
-                onClick={() => toggleHabit(habit.id)}
+        ) : (
+
+          <div className="habit-list">
+
+            {habits.map((habit) => (
+
+              <div
+                key={habit.id}
+                className="habit-card"
               >
-                {habit.completed
-                  ? "Mark Incomplete"
-                  : "Mark Complete"}
-              </button>
 
-              <button
-                className="primary-button"
-                onClick={() => deleteHabit(habit.id)}
-              >
-                Delete
-              </button>
+                <div>
+                  <h2>{habit.name}</h2>
 
-            </div>
+                  <p>
+                    {habit.completed
+                      ? "☑ Completed today"
+                      : "☐ Not completed yet"}
+                  </p>
+                </div>
+
+                <div className="habit-actions">
+
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() => toggleHabit(habit.id)}
+                  >
+                    {habit.completed
+                      ? "Mark Incomplete"
+                      : "Mark Complete"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="delete-button"
+                    onClick={() => deleteHabit(habit.id)}
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </div>
+
+            ))}
 
           </div>
-        ))}
+
+        )}
 
       </section>
 

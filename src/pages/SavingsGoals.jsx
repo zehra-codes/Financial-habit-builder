@@ -15,15 +15,24 @@ function SavingsGoals() {
   const [savedAmount, setSavedAmount] = useState("");
 
   function addGoal() {
-    if (!goalName || !targetAmount || !savedAmount) {
+    const target = Number(targetAmount);
+    const saved = Number(savedAmount);
+
+    if (!goalName.trim() || target <= 0 || saved < 0) {
+      alert("Please enter valid goal details.");
+      return;
+    }
+
+    if (saved > target) {
+      alert("Saved amount cannot be greater than the target amount.");
       return;
     }
 
     const newGoal = {
       id: Date.now(),
-      name: goalName,
-      target: Number(targetAmount),
-      saved: Number(savedAmount),
+      name: goalName.trim(),
+      target: target,
+      saved: saved,
     };
 
     setGoals([...goals, newGoal]);
@@ -40,6 +49,7 @@ function SavingsGoals() {
   return (
     <main className="dashboard">
 
+      {/* Add Savings Goal */}
       <section className="card">
         <div className="section-heading">
           <div>
@@ -53,6 +63,7 @@ function SavingsGoals() {
 
           <div className="input-group">
             <label>Goal Name</label>
+
             <input
               type="text"
               placeholder="e.g. Emergency Fund"
@@ -66,9 +77,11 @@ function SavingsGoals() {
 
             <div className="input-wrapper">
               <span>₹</span>
+
               <input
                 type="number"
                 placeholder="50000"
+                min="1"
                 value={targetAmount}
                 onChange={(event) =>
                   setTargetAmount(event.target.value)
@@ -82,9 +95,11 @@ function SavingsGoals() {
 
             <div className="input-wrapper">
               <span>₹</span>
+
               <input
                 type="number"
                 placeholder="15000"
+                min="0"
                 value={savedAmount}
                 onChange={(event) =>
                   setSavedAmount(event.target.value)
@@ -94,6 +109,7 @@ function SavingsGoals() {
           </div>
 
           <button
+            type="button"
             className="primary-button"
             onClick={addGoal}
           >
@@ -103,7 +119,9 @@ function SavingsGoals() {
         </div>
       </section>
 
+      {/* Savings Goals */}
       <section className="card">
+
         <div className="section-heading">
           <div>
             <span className="section-label">YOUR GOALS</span>
@@ -112,41 +130,77 @@ function SavingsGoals() {
           </div>
         </div>
 
-        {goals.map((goal) => {
-          const percentage = Math.min(
-            Math.round((goal.saved / goal.target) * 100),
-            100
-          );
+        <div className="goals-grid">
 
-          return (
-            <div key={goal.id} className="goal-card">
+          {goals.map((goal) => {
+            const percentage = Math.min(
+              Math.round((goal.saved / goal.target) * 100),
+              100
+            );
 
-              <h2>{goal.name}</h2>
+            const remaining = Math.max(
+              goal.target - goal.saved,
+              0
+            );
 
-              <p>
-                ₹{goal.saved.toLocaleString("en-IN")} / ₹
-                {goal.target.toLocaleString("en-IN")}
-              </p>
+            const isCompleted = percentage === 100;
 
-              <p>{percentage}% completed</p>
+            return (
+              <div key={goal.id} className="goal-card">
 
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${percentage}%` }}
-                ></div>
+                <div className="goal-card-header">
+
+                  <div>
+                    <h2>{goal.name}</h2>
+
+                    <p>
+                      ₹{goal.saved.toLocaleString("en-IN")} saved of ₹
+                      {goal.target.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  <span className="goal-percentage">
+                    {percentage}%
+                  </span>
+
+                </div>
+
+                <div className="progress-bar">
+
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${percentage}%` }}
+                  ></div>
+
+                </div>
+
+                <div className="goal-footer">
+
+                  {isCompleted ? (
+                    <strong className="goal-completed">
+                      ✓ Goal Completed
+                    </strong>
+                  ) : (
+                    <span>
+                      ₹{remaining.toLocaleString("en-IN")} remaining
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    className="delete-button"
+                    onClick={() => deleteGoal(goal.id)}
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
               </div>
+            );
+          })}
 
-              <button
-                className="primary-button"
-                onClick={() => deleteGoal(goal.id)}
-              >
-                Delete Goal
-              </button>
-
-            </div>
-          );
-        })}
+        </div>
 
       </section>
 
