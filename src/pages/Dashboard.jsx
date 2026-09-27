@@ -1,4 +1,3 @@
-jsx
 import { Link } from "react-router-dom";
 import Welcome from "../components/Welcome";
 import FinancialSummary from "../components/FinancialSummary";
