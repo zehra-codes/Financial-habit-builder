@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import IncomeExpenses from "./pages/IncomeExpenses";
 import SavingsGoals from "./pages/SavingsGoals";
 import Habits from "./pages/Habits";
+import WealthAnalytics from "./pages/WealthAnalytics";
 
 import "./App.css";
 
@@ -83,6 +84,10 @@ function App() {
         <Route
           path="/habits"
           element={<Habits />}
+        />
+        <Route 
+          path="/wealth-analytics" 
+          element={<WealthAnalytics />} 
         />
       </Routes>
     </BrowserRouter>

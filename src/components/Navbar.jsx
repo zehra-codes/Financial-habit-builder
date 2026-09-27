@@ -45,6 +45,14 @@ return ( <nav className="navbar"> <div className="navbar-brand"> <span className
     >
       Habits
     </NavLink>
+    <NavLink
+  to="/wealth-analytics"
+  className={({ isActive }) =>
+    isActive ? "nav-link active" : "nav-link"
+  }
+>
+  Wealth Analytics
+</NavLink>
   </div>
 </nav>
 
