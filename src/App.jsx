@@ -2,12 +2,14 @@ import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
-
+import AdminPanel from "./pages/AdminPanel";
 import Dashboard from "./pages/Dashboard";
 import IncomeExpenses from "./pages/IncomeExpenses";
 import SavingsGoals from "./pages/SavingsGoals";
 import Habits from "./pages/Habits";
 import WealthAnalytics from "./pages/WealthAnalytics";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 import "./App.css";
 
@@ -89,7 +91,22 @@ function App() {
           path="/wealth-analytics" 
           element={<WealthAnalytics />} 
         />
+         <Route
+          path="/admin"
+          element={<AdminPanel />}
+        />
+       <Route
+        path="/login"
+        element={<Login />}
+      />
+
+        <Route
+         path="/register"
+        element={<Register />}
+       />
+
       </Routes>
+      
     </BrowserRouter>
   );
 }

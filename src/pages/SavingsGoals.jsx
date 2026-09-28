@@ -14,6 +14,9 @@ function SavingsGoals() {
   const [targetAmount, setTargetAmount] = useState("");
   const [savedAmount, setSavedAmount] = useState("");
 
+  const [addingToGoal, setAddingToGoal] = useState(null);
+  const [additionalAmount, setAdditionalAmount] = useState("");
+
   function addGoal() {
     const target = Number(targetAmount);
     const saved = Number(savedAmount);
@@ -31,8 +34,8 @@ function SavingsGoals() {
     const newGoal = {
       id: Date.now(),
       name: goalName.trim(),
-      target: target,
-      saved: saved,
+      target,
+      saved,
     };
 
     setGoals([...goals, newGoal]);
@@ -42,21 +45,92 @@ function SavingsGoals() {
     setSavedAmount("");
   }
 
-  function deleteGoal(id) {
-    setGoals(goals.filter((goal) => goal.id !== id));
+  function addMoneyToGoal(goalId) {
+    const amount = Number(additionalAmount);
+
+    if (amount <= 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+
+    setGoals(
+      goals.map((goal) => {
+        if (goal.id !== goalId) {
+          return goal;
+        }
+
+        const newSavedAmount = goal.saved + amount;
+
+        if (newSavedAmount > goal.target) {
+          alert(
+            `You only need ₹${(
+              goal.target - goal.saved
+            ).toLocaleString("en-IN")} more for this goal.`
+          );
+
+          return goal;
+        }
+
+        return {
+          ...goal,
+          saved: newSavedAmount,
+        };
+      })
+    );
+
+    setAdditionalAmount("");
+    setAddingToGoal(null);
   }
+
+  function deleteGoal(id) {
+    setGoals(
+      goals.filter((goal) => goal.id !== id)
+    );
+
+    if (addingToGoal === id) {
+      setAddingToGoal(null);
+      setAdditionalAmount("");
+    }
+  }
+
+  const totalTarget = goals.reduce(
+    (total, goal) => total + goal.target,
+    0
+  );
+
+  const totalSaved = goals.reduce(
+    (total, goal) => total + goal.saved,
+    0
+  );
+
+  const overallProgress =
+    totalTarget === 0
+      ? 0
+      : Math.min(
+          Math.round((totalSaved / totalTarget) * 100),
+          100
+        );
 
   return (
     <main className="dashboard">
 
       {/* Add Savings Goal */}
       <section className="card">
+
         <div className="section-heading">
+
           <div>
-            <span className="section-label">SAVINGS PLANNER</span>
+            <span className="section-label">
+              SAVINGS PLANNER
+            </span>
+
             <h1>Savings Goals</h1>
-            <p>Set and track your financial savings goals.</p>
+
+            <p>
+              Set and track your financial savings goals.
+            </p>
           </div>
+
         </div>
 
         <div className="update-form">
@@ -68,7 +142,9 @@ function SavingsGoals() {
               type="text"
               placeholder="e.g. Emergency Fund"
               value={goalName}
-              onChange={(event) => setGoalName(event.target.value)}
+              onChange={(event) =>
+                setGoalName(event.target.value)
+              }
             />
           </div>
 
@@ -117,90 +193,273 @@ function SavingsGoals() {
           </button>
 
         </div>
+
+      </section>
+
+      {/* Overall Savings Summary */}
+      <section className="card">
+
+        <div className="section-heading">
+
+          <div>
+            <span className="section-label">
+              SAVINGS OVERVIEW
+            </span>
+
+            <h2>Overall Progress</h2>
+
+            <p>
+              Track your progress across all savings goals.
+            </p>
+          </div>
+
+          <strong>
+            {overallProgress}%
+          </strong>
+
+        </div>
+
+        <div className="totals-section">
+
+          <div className="total-box">
+            <span>Total Saved</span>
+
+            <strong>
+              ₹{totalSaved.toLocaleString("en-IN")}
+            </strong>
+          </div>
+
+          <div className="total-box">
+            <span>Total Target</span>
+
+            <strong>
+              ₹{totalTarget.toLocaleString("en-IN")}
+            </strong>
+          </div>
+
+          <div className="total-box">
+            <span>Goals</span>
+
+            <strong>
+              {goals.length}
+            </strong>
+          </div>
+
+        </div>
+
       </section>
 
       {/* Savings Goals */}
       <section className="card">
 
         <div className="section-heading">
+
           <div>
-            <span className="section-label">YOUR GOALS</span>
+            <span className="section-label">
+              YOUR GOALS
+            </span>
+
             <h2>My Savings Goals</h2>
-            <p>Track your progress toward each goal.</p>
+
+            <p>
+              Track your progress toward each goal.
+            </p>
           </div>
+
         </div>
 
-        <div className="goals-grid">
+        {goals.length === 0 ? (
 
-          {goals.map((goal) => {
-            const percentage = Math.min(
-              Math.round((goal.saved / goal.target) * 100),
-              100
-            );
+          <div className="empty-state">
 
-            const remaining = Math.max(
-              goal.target - goal.saved,
-              0
-            );
+            <div className="empty-icon">
+              ₹
+            </div>
 
-            const isCompleted = percentage === 100;
+            <h4>No savings goals yet</h4>
 
-            return (
-              <div key={goal.id} className="goal-card">
+            <p>
+              Add your first savings goal above.
+            </p>
 
-                <div className="goal-card-header">
+          </div>
 
-                  <div>
-                    <h2>{goal.name}</h2>
+        ) : (
 
-                    <p>
-                      ₹{goal.saved.toLocaleString("en-IN")} saved of ₹
-                      {goal.target.toLocaleString("en-IN")}
-                    </p>
+          <div className="goals-grid">
+
+            {goals.map((goal) => {
+
+              const percentage = Math.min(
+                Math.round(
+                  (goal.saved / goal.target) * 100
+                ),
+                100
+              );
+
+              const remaining = Math.max(
+                goal.target - goal.saved,
+                0
+              );
+
+              const isCompleted =
+                percentage === 100;
+
+              return (
+                <div
+                  key={goal.id}
+                  className="goal-card"
+                >
+
+                  <div className="goal-card-header">
+
+                    <div>
+                      <h2>{goal.name}</h2>
+
+                      <p>
+                        ₹
+                        {goal.saved.toLocaleString(
+                          "en-IN"
+                        )}{" "}
+                        saved of ₹
+                        {goal.target.toLocaleString(
+                          "en-IN"
+                        )}
+                      </p>
+                    </div>
+
+                    <span className="goal-percentage">
+                      {percentage}%
+                    </span>
+
                   </div>
 
-                  <span className="goal-percentage">
-                    {percentage}%
-                  </span>
+                  <div className="progress-bar">
 
-                </div>
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${percentage}%`,
+                      }}
+                    ></div>
 
-                <div className="progress-bar">
+                  </div>
 
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${percentage}%` }}
-                  ></div>
+                  <div className="goal-footer">
 
-                </div>
+                    {isCompleted ? (
+                      <strong className="goal-completed">
+                        ✓ Goal Completed
+                      </strong>
+                    ) : (
+                      <span>
+                        ₹
+                        {remaining.toLocaleString(
+                          "en-IN"
+                        )}{" "}
+                        remaining
+                      </span>
+                    )}
 
-                <div className="goal-footer">
+                  </div>
 
-                  {isCompleted ? (
-                    <strong className="goal-completed">
-                      ✓ Goal Completed
-                    </strong>
-                  ) : (
-                    <span>
-                      ₹{remaining.toLocaleString("en-IN")} remaining
-                    </span>
+                  {!isCompleted && (
+                    <div className="update-form">
+
+                      {addingToGoal === goal.id ? (
+
+                        <>
+                          <div className="input-group">
+
+                            <label>
+                              Add Money
+                            </label>
+
+                            <div className="input-wrapper">
+                              <span>₹</span>
+
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="1000"
+                                value={
+                                  additionalAmount
+                                }
+                                onChange={(event) =>
+                                  setAdditionalAmount(
+                                    event.target.value
+                                  )
+                                }
+                              />
+
+                            </div>
+
+                          </div>
+
+                          <button
+                            type="button"
+                            className="primary-button"
+                            onClick={() =>
+                              addMoneyToGoal(
+                                goal.id
+                              )
+                            }
+                          >
+                            Add to Goal
+                          </button>
+
+                          <button
+                            type="button"
+                            className="delete-button"
+                            onClick={() => {
+                              setAddingToGoal(null);
+                              setAdditionalAmount("");
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+
+                      ) : (
+
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={() =>
+                            setAddingToGoal(
+                              goal.id
+                            )
+                          }
+                        >
+                          + Add Money
+                        </button>
+
+                      )}
+
+                    </div>
                   )}
 
-                  <button
-                    type="button"
-                    className="delete-button"
-                    onClick={() => deleteGoal(goal.id)}
-                  >
-                    Delete
-                  </button>
+                  <div className="goal-footer">
+
+                    <button
+                      type="button"
+                      className="delete-button"
+                      onClick={() =>
+                        deleteGoal(goal.id)
+                      }
+                    >
+                      Delete
+                    </button>
+
+                  </div>
 
                 </div>
+              );
+            })}
 
-              </div>
-            );
-          })}
+          </div>
 
-        </div>
+        )}
 
       </section>
 

@@ -1,30 +1,98 @@
 import { useState } from "react";
 
+const categories = [
+  "Salary",
+  "Food",
+  "Rent",
+  "Transport",
+  "Shopping",
+  "Bills",
+  "Entertainment",
+  "Health",
+  "Education",
+  "Investment",
+  "Other",
+];
+
 function TransactionTracker({ transactions, setTransactions }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("Income");
+  const [category, setCategory] = useState("Other");
+  const [date, setDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
-  function addTransaction() {
+  const [filterType, setFilterType] = useState("All");
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [filterMonth, setFilterMonth] = useState("");
+
+  const [editingId, setEditingId] = useState(null);
+
+  function resetForm() {
+    setDescription("");
+    setAmount("");
+    setType("Income");
+    setCategory("Other");
+    setDate(new Date().toISOString().split("T")[0]);
+    setEditingId(null);
+  }
+
+  function addOrUpdateTransaction() {
     const trimmedDescription = description.trim();
     const numericAmount = Number(amount);
 
-    if (!trimmedDescription || numericAmount <= 0) {
-      alert("Please enter a valid description and amount.");
+    if (!trimmedDescription || numericAmount <= 0 || !date) {
+      alert("Please enter a valid description, amount and date.");
       return;
     }
 
-    const newTransaction = {
-      id: Date.now(),
-      description: trimmedDescription,
-      amount: numericAmount,
-      type: type,
-    };
+    if (editingId !== null) {
+      setTransactions(
+        transactions.map((transaction) =>
+          transaction.id === editingId
+            ? {
+                ...transaction,
+                description: trimmedDescription,
+                amount: numericAmount,
+                type,
+                category,
+                date,
+              }
+            : transaction
+        )
+      );
+    } else {
+      const newTransaction = {
+        id: Date.now(),
+        description: trimmedDescription,
+        amount: numericAmount,
+        type,
+        category,
+        date,
+      };
 
-    setTransactions([...transactions, newTransaction]);
+      setTransactions([...transactions, newTransaction]);
+    }
 
-    setDescription("");
-    setAmount("");
+    resetForm();
+  }
+
+  function editTransaction(transaction) {
+    setDescription(transaction.description);
+    setAmount(transaction.amount);
+    setType(transaction.type);
+    setCategory(transaction.category || "Other");
+    setDate(
+      transaction.date ||
+        new Date().toISOString().split("T")[0]
+    );
+    setEditingId(transaction.id);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
   function deleteTransaction(id) {
@@ -33,16 +101,42 @@ function TransactionTracker({ transactions, setTransactions }) {
         (transaction) => transaction.id !== id
       )
     );
+
+    if (editingId === id) {
+      resetForm();
+    }
   }
 
-  const totalIncome = transactions
+  const filteredTransactions = transactions.filter(
+    (transaction) => {
+      const matchesType =
+        filterType === "All" ||
+        transaction.type === filterType;
+
+      const matchesCategory =
+        filterCategory === "All" ||
+        (transaction.category || "Other") === filterCategory;
+
+      const matchesMonth =
+        !filterMonth ||
+        (transaction.date || "").startsWith(filterMonth);
+
+      return (
+        matchesType &&
+        matchesCategory &&
+        matchesMonth
+      );
+    }
+  );
+
+  const totalIncome = filteredTransactions
     .filter((transaction) => transaction.type === "Income")
     .reduce(
       (total, transaction) => total + transaction.amount,
       0
     );
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
     .filter((transaction) => transaction.type === "Expense")
     .reduce(
       (total, transaction) => total + transaction.amount,
@@ -50,6 +144,11 @@ function TransactionTracker({ transactions, setTransactions }) {
     );
 
   const balance = totalIncome - totalExpenses;
+
+  const maxTotal = Math.max(
+    totalIncome,
+    totalExpenses
+  );
 
   return (
     <section className="tracker card">
@@ -64,7 +163,8 @@ function TransactionTracker({ transactions, setTransactions }) {
           <h2>Income & Expense Tracker</h2>
 
           <p>
-            Add your transactions and keep an eye on your spending.
+            Track your income, expenses, categories and
+            monthly spending.
           </p>
         </div>
       </div>
@@ -117,42 +217,158 @@ function TransactionTracker({ transactions, setTransactions }) {
           </select>
         </div>
 
+        <div className="input-group">
+          <label>Category</label>
+
+          <select
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value)
+            }
+          >
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="input-group">
+          <label>Date</label>
+
+          <input
+            type="date"
+            value={date}
+            onChange={(event) =>
+              setDate(event.target.value)
+            }
+          />
+        </div>
+
         <button
           type="button"
           className="primary-button"
-          onClick={addTransaction}
+          onClick={addOrUpdateTransaction}
         >
-          + Add Transaction
+          {editingId !== null
+            ? "Update Transaction"
+            : "+ Add Transaction"}
         </button>
+
+        {editingId !== null && (
+          <button
+            type="button"
+            className="delete-button"
+            onClick={resetForm}
+          >
+            Cancel Edit
+          </button>
+        )}
 
       </div>
 
-      {/* Transactions */}
+      {/* Filters */}
       <div className="transactions-section">
 
+        <div className="sub-heading">
+          <div>
+            <h3>Transaction Filters</h3>
+            <p>
+              Filter your financial activity by type,
+              category or month.
+            </p>
+          </div>
+        </div>
+
+        <div className="transaction-form">
+
+          <div className="input-group">
+            <label>Type</label>
+
+            <select
+              value={filterType}
+              onChange={(event) =>
+                setFilterType(event.target.value)
+              }
+            >
+              <option value="All">All Types</option>
+              <option value="Income">Income</option>
+              <option value="Expense">Expense</option>
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label>Category</label>
+
+            <select
+              value={filterCategory}
+              onChange={(event) =>
+                setFilterCategory(event.target.value)
+              }
+            >
+              <option value="All">All Categories</option>
+
+              {categories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="input-group">
+            <label>Month</label>
+
+            <input
+              type="month"
+              value={filterMonth}
+              onChange={(event) =>
+                setFilterMonth(event.target.value)
+              }
+            />
+          </div>
+
+          <button
+            type="button"
+            className="delete-button"
+            onClick={() => {
+              setFilterType("All");
+              setFilterCategory("All");
+              setFilterMonth("");
+            }}
+          >
+            Clear Filters
+          </button>
+
+        </div>
+
+        {/* Transaction List */}
         <div className="sub-heading">
 
           <div>
             <h3>Transactions</h3>
-            <p>Your recent financial activity.</p>
+            <p>Your financial activity.</p>
           </div>
 
           <span className="transaction-count">
-            {transactions.length} transaction
-            {transactions.length !== 1 ? "s" : ""}
+            {filteredTransactions.length} transaction
+            {filteredTransactions.length !== 1
+              ? "s"
+              : ""}
           </span>
 
         </div>
 
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
 
           <div className="empty-state">
             <div className="empty-icon">₹</div>
 
-            <h4>No transactions yet</h4>
+            <h4>No transactions found</h4>
 
             <p>
-              Add your first income or expense above.
+              Add a transaction or change your filters.
             </p>
           </div>
 
@@ -160,7 +376,7 @@ function TransactionTracker({ transactions, setTransactions }) {
 
           <div className="transaction-list">
 
-            {transactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
 
               <div
                 className={`transaction-item ${
@@ -185,7 +401,9 @@ function TransactionTracker({ transactions, setTransactions }) {
                     </strong>
 
                     <span>
-                      {transaction.type}
+                      {transaction.type} •{" "}
+                      {transaction.category || "Other"} •{" "}
+                      {transaction.date || "No date"}
                     </span>
                   </div>
 
@@ -198,18 +416,32 @@ function TransactionTracker({ transactions, setTransactions }) {
                       ? "+"
                       : "-"}
                     ₹
-                    {transaction.amount.toLocaleString("en-IN")}
+                    {transaction.amount.toLocaleString(
+                      "en-IN"
+                    )}
                   </strong>
 
-                  <button
-                    type="button"
-                    className="delete-button"
-                    onClick={() =>
-                      deleteTransaction(transaction.id)
-                    }
-                  >
-                    Delete
-                  </button>
+                  <div>
+                    <button
+                      type="button"
+                      className="delete-button"
+                      onClick={() =>
+                        editTransaction(transaction)
+                      }
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="delete-button"
+                      onClick={() =>
+                        deleteTransaction(transaction.id)
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
 
                 </div>
 
@@ -267,10 +499,11 @@ function TransactionTracker({ transactions, setTransactions }) {
 
         </div>
 
-        {transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
 
           <div className="chart-empty">
-            Add transactions to see your income and expenses.
+            Add transactions to see your income and
+            expenses.
           </div>
 
         ) : (
@@ -293,16 +526,8 @@ function TransactionTracker({ transactions, setTransactions }) {
                   className="comparison-bar income-bar"
                   style={{
                     width: `${
-                      Math.max(
-                        totalIncome,
-                        totalExpenses
-                      ) > 0
-                        ? (totalIncome /
-                            Math.max(
-                              totalIncome,
-                              totalExpenses
-                            )) *
-                          100
+                      maxTotal > 0
+                        ? (totalIncome / maxTotal) * 100
                         : 0
                     }%`,
                   }}
@@ -328,16 +553,8 @@ function TransactionTracker({ transactions, setTransactions }) {
                   className="comparison-bar expense-bar"
                   style={{
                     width: `${
-                      Math.max(
-                        totalIncome,
-                        totalExpenses
-                      ) > 0
-                        ? (totalExpenses /
-                            Math.max(
-                              totalIncome,
-                              totalExpenses
-                            )) *
-                          100
+                      maxTotal > 0
+                        ? (totalExpenses / maxTotal) * 100
                         : 0
                     }%`,
                   }}
@@ -357,4 +574,4 @@ function TransactionTracker({ transactions, setTransactions }) {
   );
 }
 
-export default TransactionTracker;
+export default TransactionTracker; 
