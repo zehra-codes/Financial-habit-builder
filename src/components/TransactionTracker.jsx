@@ -38,45 +38,80 @@ function TransactionTracker({ transactions, setTransactions }) {
     setEditingId(null);
   }
 
-  function addOrUpdateTransaction() {
-    const trimmedDescription = description.trim();
-    const numericAmount = Number(amount);
+  async function addOrUpdateTransaction() {
+const trimmedDescription = description.trim();
+const numericAmount = Number(amount);
 
-    if (!trimmedDescription || numericAmount <= 0 || !date) {
-      alert("Please enter a valid description, amount and date.");
-      return;
-    }
+if (!trimmedDescription || numericAmount <= 0 || !date) {
+alert("Please enter a valid description, amount and date.");
+return;
+}
 
-    if (editingId !== null) {
-      setTransactions(
-        transactions.map((transaction) =>
-          transaction.id === editingId
-            ? {
-                ...transaction,
-                description: trimmedDescription,
-                amount: numericAmount,
-                type,
-                category,
-                date,
-              }
-            : transaction
-        )
-      );
-    } else {
-      const newTransaction = {
-        id: Date.now(),
-        description: trimmedDescription,
-        amount: numericAmount,
-        type,
-        category,
-        date,
-      };
+try {
+if (editingId !== null) {
+// Editing will be connected to the backend after we confirm adding works.
+setTransactions(
+transactions.map((transaction) =>
+transaction.id === editingId
+? {
+...transaction,
+description: trimmedDescription,
+amount: numericAmount,
+type,
+category,
+date,
+}
+: transaction
+)
+);
+} else {
+const response = await fetch(
+"http://localhost:5000/api/transactions",
+{
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+},
+body: JSON.stringify({
+type: type.toLowerCase(),
+amount: numericAmount,
+description: trimmedDescription,
+category,
+date,
+}),
+}
+);
 
-      setTransactions([...transactions, newTransaction]);
-    }
+  const data = await response.json();
 
-    resetForm();
+  if (!response.ok || !data.success) {
+    throw new Error(
+      data.message || "Failed to save transaction."
+    );
   }
+
+  const savedTransaction = {
+    ...data.transaction,
+    id: data.transaction._id,
+    type:
+      data.transaction.type === "income"
+        ? "Income"
+        : "Expense",
+    date: data.transaction.date
+      ? data.transaction.date.split("T")[0]
+      : date,
+  };
+
+  setTransactions([...transactions, savedTransaction]);
+}
+
+resetForm();
+
+} catch (error) {
+console.error("Failed to save transaction:", error);
+alert("Could not save the transaction. Please try again.");
+}
+}
 
   function editTransaction(transaction) {
     setDescription(transaction.description);
