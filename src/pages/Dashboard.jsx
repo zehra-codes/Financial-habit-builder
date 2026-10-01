@@ -1,3 +1,4 @@
+// Dashboard: displays financial summary and transaction insights
 import { Link } from "react-router-dom";
 import Welcome from "../components/Welcome";
 import FinancialSummary from "../components/FinancialSummary";
@@ -29,7 +30,7 @@ function Dashboard({
               FINANCIAL OVERVIEW
             </span>
 
-            <h2>Your Money at a Glance</h2>
+            <h2>Your Financial Snapshot</h2>
 
             <p>
               See how your income, expenses, and savings are doing.
