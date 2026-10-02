@@ -13,7 +13,7 @@ const categories = [
   "Investment",
   "Other",
 ];
-
+// Day 20 progress: Money page ready for backend delete integration
 function TransactionTracker({ transactions, setTransactions }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
