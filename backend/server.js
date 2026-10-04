@@ -56,7 +56,32 @@ app.get("/api/transactions", async (req, res) => {
     });
   }
 });
+// Delete a transaction
+app.delete("/api/transactions/:id", async (req, res) => {
+  try {
+    const transaction = await Transaction.findByIdAndDelete(
+      req.params.id
+    );
 
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Transaction deleted successfully!",
+      transaction,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });
