@@ -1,4 +1,7 @@
+
 import { useState } from "react";
+
+const API_URL = "http://localhost:5000/api/transactions";
 
 const categories = [
   "Salary",
@@ -13,7 +16,7 @@ const categories = [
   "Investment",
   "Other",
 ];
-// Day 20 progress: Money page ready for backend delete integration
+
 function TransactionTracker({ transactions, setTransactions }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -26,7 +29,6 @@ function TransactionTracker({ transactions, setTransactions }) {
   const [filterType, setFilterType] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterMonth, setFilterMonth] = useState("");
-
   const [editingId, setEditingId] = useState(null);
 
   function resetForm() {
@@ -39,90 +41,86 @@ function TransactionTracker({ transactions, setTransactions }) {
   }
 
   async function addOrUpdateTransaction() {
-const trimmedDescription = description.trim();
-const numericAmount = Number(amount);
+    const trimmedDescription = description.trim();
+    const numericAmount = Number(amount);
 
-if (!trimmedDescription || numericAmount <= 0 || !date) {
-alert("Please enter a valid description, amount and date.");
-return;
-}
+    if (!trimmedDescription || numericAmount <= 0 || !date) {
+      alert("Please enter a valid description, amount and date.");
+      return;
+    }
 
-try {
-if (editingId !== null) {
-// Editing will be connected to the backend after we confirm adding works.
-setTransactions(
-transactions.map((transaction) =>
-transaction.id === editingId
-? {
-...transaction,
-description: trimmedDescription,
-amount: numericAmount,
-type,
-category,
-date,
-}
-: transaction
-)
-);
-} else {
-const response = await fetch(
-"http://localhost:5000/api/transactions",
-{
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-},
-body: JSON.stringify({
-type: type.toLowerCase(),
-amount: numericAmount,
-description: trimmedDescription,
-category,
-date,
-}),
-}
-);
+    try {
+      if (editingId !== null) {
+        // Edit/Update will be connected to MongoDB next.
+        setTransactions((previousTransactions) =>
+          previousTransactions.map((transaction) =>
+            String(transaction._id || transaction.id) === String(editingId)
+              ? {
+                  ...transaction,
+                  description: trimmedDescription,
+                  amount: numericAmount,
+                  type,
+                  category,
+                  date,
+                }
+              : transaction
+          )
+        );
+      } else {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: type.toLowerCase(),
+            amount: numericAmount,
+            description: trimmedDescription,
+            category,
+            date,
+          }),
+        });
 
-  const data = await response.json();
+        const data = await response.json();
 
-  if (!response.ok || !data.success) {
-    throw new Error(
-      data.message || "Failed to save transaction."
-    );
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Failed to save transaction.");
+        }
+
+        const savedTransaction = {
+          ...data.transaction,
+          id: data.transaction._id,
+          type:
+            data.transaction.type === "income" ? "Income" : "Expense",
+          date: data.transaction.date
+            ? data.transaction.date.split("T")[0]
+            : date,
+        };
+
+        setTransactions((previousTransactions) => [
+          ...previousTransactions,
+          savedTransaction,
+        ]);
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error("Failed to save transaction:", error);
+      alert(error.message || "Could not save the transaction. Please try again.");
+    }
   }
-
-  const savedTransaction = {
-    ...data.transaction,
-    id: data.transaction._id,
-    type:
-      data.transaction.type === "income"
-        ? "Income"
-        : "Expense",
-    date: data.transaction.date
-      ? data.transaction.date.split("T")[0]
-      : date,
-  };
-
-  setTransactions([...transactions, savedTransaction]);
-}
-
-resetForm();
-
-} catch (error) {
-console.error("Failed to save transaction:", error);
-alert("Could not save the transaction. Please try again.");
-}
-}
 
   function editTransaction(transaction) {
     setDescription(transaction.description);
-    setAmount(transaction.amount);
+    setAmount(String(transaction.amount));
     setType(transaction.type);
     setCategory(transaction.category || "Other");
     setDate(
-      transaction.date ||
-        new Date().toISOString().split("T")[0]
+      transaction.date
+        ? transaction.date.split("T")[0]
+        : new Date().toISOString().split("T")[0]
     );
-    setEditingId(transaction.id);
+    setEditingId(transaction._id || transaction.id);
 
     window.scrollTo({
       top: 0,
@@ -130,122 +128,110 @@ alert("Could not save the transaction. Please try again.");
     });
   }
 
-  function deleteTransaction(id) {
-    setTransactions(
-      transactions.filter(
-        (transaction) => transaction.id !== id
-      )
-    );
+  // Delete transaction from MongoDB and then update the Money page.
+  async function deleteTransaction(id) {
+    if (!window.confirm("Are you sure you want to delete this transaction?")) {
+      return;
+    }
 
-    if (editingId === id) {
-      resetForm();
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to delete transaction.");
+      }
+
+      setTransactions((previousTransactions) =>
+        previousTransactions.filter(
+          (transaction) =>
+            String(transaction._id || transaction.id) !== String(id)
+        )
+      );
+
+      if (String(editingId) === String(id)) {
+        resetForm();
+      }
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+      alert(error.message || "Could not delete the transaction. Please try again.");
     }
   }
 
-  const filteredTransactions = transactions.filter(
-    (transaction) => {
-      const matchesType =
-        filterType === "All" ||
-        transaction.type === filterType;
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesType =
+      filterType === "All" || transaction.type === filterType;
 
-      const matchesCategory =
-        filterCategory === "All" ||
-        (transaction.category || "Other") === filterCategory;
+    const matchesCategory =
+      filterCategory === "All" ||
+      (transaction.category || "Other") === filterCategory;
 
-      const matchesMonth =
-        !filterMonth ||
-        (transaction.date || "").startsWith(filterMonth);
+    const transactionDate = transaction.date
+      ? transaction.date.split("T")[0]
+      : "";
 
-      return (
-        matchesType &&
-        matchesCategory &&
-        matchesMonth
-      );
-    }
-  );
+    const matchesMonth =
+      !filterMonth || transactionDate.startsWith(filterMonth);
+
+    return matchesType && matchesCategory && matchesMonth;
+  });
 
   const totalIncome = filteredTransactions
     .filter((transaction) => transaction.type === "Income")
-    .reduce(
-      (total, transaction) => total + transaction.amount,
-      0
-    );
+    .reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
 
   const totalExpenses = filteredTransactions
     .filter((transaction) => transaction.type === "Expense")
-    .reduce(
-      (total, transaction) => total + transaction.amount,
-      0
-    );
+    .reduce((total, transaction) => total + Number(transaction.amount || 0), 0);
 
   const balance = totalIncome - totalExpenses;
-
-  const maxTotal = Math.max(
-    totalIncome,
-    totalExpenses
-  );
+  const maxTotal = Math.max(totalIncome, totalExpenses);
 
   return (
     <section className="tracker card">
-
-      {/* Header */}
       <div className="section-heading">
         <div>
-          <span className="section-label">
-            MONEY MANAGEMENT
-          </span>
-
-          <h2>Income & Expense Tracker</h2>
-
+          <span className="section-label">MONEY MANAGEMENT</span>
+          <h2>Income &amp; Expense Tracker</h2>
           <p>
-            Track your income, expenses, categories and
-            monthly spending.
+            Track your income, expenses, categories and monthly spending.
           </p>
         </div>
       </div>
 
-      {/* Transaction Form */}
       <div className="transaction-form">
-
         <div className="input-group">
           <label>Description</label>
-
           <input
             type="text"
             value={description}
             placeholder="e.g. Salary, Grocery, Rent"
-            onChange={(event) =>
-              setDescription(event.target.value)
-            }
+            onChange={(event) => setDescription(event.target.value)}
           />
         </div>
 
         <div className="input-group">
           <label>Amount</label>
-
           <div className="input-wrapper">
             <span>₹</span>
-
             <input
               type="number"
               min="1"
               value={amount}
               placeholder="5000"
-              onChange={(event) =>
-                setAmount(event.target.value)
-              }
+              onChange={(event) => setAmount(event.target.value)}
             />
           </div>
         </div>
 
         <div className="input-group">
           <label>Type</label>
-
           <select
             value={type}
-            onChange={(event) =>
-              setType(event.target.value)
-            }
+            onChange={(event) => setType(event.target.value)}
           >
             <option value="Income">Income</option>
             <option value="Expense">Expense</option>
@@ -254,12 +240,9 @@ alert("Could not save the transaction. Please try again.");
 
         <div className="input-group">
           <label>Category</label>
-
           <select
             value={category}
-            onChange={(event) =>
-              setCategory(event.target.value)
-            }
+            onChange={(event) => setCategory(event.target.value)}
           >
             {categories.map((item) => (
               <option key={item} value={item}>
@@ -271,13 +254,10 @@ alert("Could not save the transaction. Please try again.");
 
         <div className="input-group">
           <label>Date</label>
-
           <input
             type="date"
             value={date}
-            onChange={(event) =>
-              setDate(event.target.value)
-            }
+            onChange={(event) => setDate(event.target.value)}
           />
         </div>
 
@@ -286,9 +266,7 @@ alert("Could not save the transaction. Please try again.");
           className="primary-button"
           onClick={addOrUpdateTransaction}
         >
-          {editingId !== null
-            ? "Update Transaction"
-            : "+ Add Transaction"}
+          {editingId !== null ? "Update Transaction" : "+ Add Transaction"}
         </button>
 
         {editingId !== null && (
@@ -300,32 +278,22 @@ alert("Could not save the transaction. Please try again.");
             Cancel Edit
           </button>
         )}
-
       </div>
 
-      {/* Filters */}
       <div className="transactions-section">
-
         <div className="sub-heading">
           <div>
             <h3>Transaction Filters</h3>
-            <p>
-              Filter your financial activity by type,
-              category or month.
-            </p>
+            <p>Filter your financial activity by type, category or month.</p>
           </div>
         </div>
 
         <div className="transaction-form">
-
           <div className="input-group">
             <label>Type</label>
-
             <select
               value={filterType}
-              onChange={(event) =>
-                setFilterType(event.target.value)
-              }
+              onChange={(event) => setFilterType(event.target.value)}
             >
               <option value="All">All Types</option>
               <option value="Income">Income</option>
@@ -335,15 +303,11 @@ alert("Could not save the transaction. Please try again.");
 
           <div className="input-group">
             <label>Category</label>
-
             <select
               value={filterCategory}
-              onChange={(event) =>
-                setFilterCategory(event.target.value)
-              }
+              onChange={(event) => setFilterCategory(event.target.value)}
             >
               <option value="All">All Categories</option>
-
               {categories.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -354,13 +318,10 @@ alert("Could not save the transaction. Please try again.");
 
           <div className="input-group">
             <label>Month</label>
-
             <input
               type="month"
               value={filterMonth}
-              onChange={(event) =>
-                setFilterMonth(event.target.value)
-              }
+              onChange={(event) => setFilterMonth(event.target.value)}
             />
           </div>
 
@@ -375,238 +336,152 @@ alert("Could not save the transaction. Please try again.");
           >
             Clear Filters
           </button>
-
         </div>
 
-        {/* Transaction List */}
         <div className="sub-heading">
-
           <div>
             <h3>Transactions</h3>
             <p>Your financial activity.</p>
           </div>
-
           <span className="transaction-count">
             {filteredTransactions.length} transaction
-            {filteredTransactions.length !== 1
-              ? "s"
-              : ""}
+            {filteredTransactions.length !== 1 ? "s" : ""}
           </span>
-
         </div>
 
         {filteredTransactions.length === 0 ? (
-
           <div className="empty-state">
             <div className="empty-icon">₹</div>
-
             <h4>No transactions found</h4>
-
-            <p>
-              Add a transaction or change your filters.
-            </p>
+            <p>Add a transaction or change your filters.</p>
           </div>
-
         ) : (
-
           <div className="transaction-list">
+            {filteredTransactions.map((transaction) => {
+              const transactionId = transaction._id || transaction.id;
+              const transactionDate = transaction.date
+                ? transaction.date.split("T")[0]
+                : "No date";
 
-            {filteredTransactions.map((transaction) => (
+              return (
+                <div
+                  className={`transaction-item ${
+                    transaction.type === "Income"
+                      ? "income-item"
+                      : "expense-item"
+                  }`}
+                  key={transactionId}
+                >
+                  <div className="transaction-info">
+                    <div className="transaction-icon">
+                      {transaction.type === "Income" ? "↑" : "↓"}
+                    </div>
 
-              <div
-                className={`transaction-item ${
-                  transaction.type === "Income"
-                    ? "income-item"
-                    : "expense-item"
-                }`}
-                key={transaction.id}
-              >
-
-                <div className="transaction-info">
-
-                  <div className="transaction-icon">
-                    {transaction.type === "Income"
-                      ? "↑"
-                      : "↓"}
+                    <div>
+                      <strong>{transaction.description}</strong>
+                      <span>
+                        {transaction.type} • {transaction.category || "Other"} •{" "}
+                        {transactionDate}
+                      </span>
+                    </div>
                   </div>
 
-                  <div>
+                  <div className="transaction-right">
                     <strong>
-                      {transaction.description}
+                      {transaction.type === "Income" ? "+" : "-"}₹
+                      {Number(transaction.amount || 0).toLocaleString("en-IN")}
                     </strong>
 
-                    <span>
-                      {transaction.type} •{" "}
-                      {transaction.category || "Other"} •{" "}
-                      {transaction.date || "No date"}
-                    </span>
+                    <div>
+                      <button
+                        type="button"
+                        className="delete-button"
+                        onClick={() => editTransaction(transaction)}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="delete-button"
+                        onClick={() => deleteTransaction(transactionId)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-
                 </div>
-
-                <div className="transaction-right">
-
-                  <strong>
-                    {transaction.type === "Income"
-                      ? "+"
-                      : "-"}
-                    ₹
-                    {transaction.amount.toLocaleString(
-                      "en-IN"
-                    )}
-                  </strong>
-
-                  <div>
-                    <button
-                      type="button"
-                      className="delete-button"
-                      onClick={() =>
-                        editTransaction(transaction)
-                      }
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      className="delete-button"
-                      onClick={() =>
-                        deleteTransaction(transaction.id)
-                      }
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                </div>
-
-              </div>
-
-            ))}
-
+              );
+            })}
           </div>
-
         )}
-
       </div>
 
-      {/* Financial Totals */}
       <div className="totals-section">
-
         <div className="total-box income-box">
           <span>Total Income</span>
-
-          <strong>
-            ₹{totalIncome.toLocaleString("en-IN")}
-          </strong>
+          <strong>₹{totalIncome.toLocaleString("en-IN")}</strong>
         </div>
 
         <div className="total-box expense-box">
           <span>Total Expenses</span>
-
-          <strong>
-            ₹{totalExpenses.toLocaleString("en-IN")}
-          </strong>
+          <strong>₹{totalExpenses.toLocaleString("en-IN")}</strong>
         </div>
 
         <div className="total-box balance-box">
           <span>Balance</span>
-
-          <strong>
-            ₹{balance.toLocaleString("en-IN")}
-          </strong>
+          <strong>₹{balance.toLocaleString("en-IN")}</strong>
         </div>
-
       </div>
 
-      {/* Income vs Expense Chart */}
       <div className="chart-section">
-
         <div className="sub-heading">
-
           <div>
             <h3>Income vs Expenses</h3>
-
-            <p>
-              Compare your total income and spending.
-            </p>
+            <p>Compare your total income and spending.</p>
           </div>
-
         </div>
 
         {filteredTransactions.length === 0 ? (
-
           <div className="chart-empty">
-            Add transactions to see your income and
-            expenses.
+            Add transactions to see your income and expenses.
           </div>
-
         ) : (
-
           <div className="comparison-chart">
-
             <div className="comparison-item">
-
               <div className="comparison-label">
                 <span>Income</span>
-
-                <strong>
-                  ₹{totalIncome.toLocaleString("en-IN")}
-                </strong>
+                <strong>₹{totalIncome.toLocaleString("en-IN")}</strong>
               </div>
-
               <div className="comparison-bar-background">
-
                 <div
                   className="comparison-bar income-bar"
                   style={{
-                    width: `${
-                      maxTotal > 0
-                        ? (totalIncome / maxTotal) * 100
-                        : 0
-                    }%`,
+                    width: `${maxTotal > 0 ? (totalIncome / maxTotal) * 100 : 0}%`,
                   }}
-                ></div>
-
+                />
               </div>
-
             </div>
 
             <div className="comparison-item">
-
               <div className="comparison-label">
                 <span>Expenses</span>
-
-                <strong>
-                  ₹{totalExpenses.toLocaleString("en-IN")}
-                </strong>
+                <strong>₹{totalExpenses.toLocaleString("en-IN")}</strong>
               </div>
-
               <div className="comparison-bar-background">
-
                 <div
                   className="comparison-bar expense-bar"
                   style={{
-                    width: `${
-                      maxTotal > 0
-                        ? (totalExpenses / maxTotal) * 100
-                        : 0
-                    }%`,
+                    width: `${maxTotal > 0 ? (totalExpenses / maxTotal) * 100 : 0}%`,
                   }}
-                ></div>
-
+                />
               </div>
-
             </div>
-
           </div>
-
         )}
-
       </div>
-
     </section>
   );
 }
 
-export default TransactionTracker; 
+export default TransactionTracker;
