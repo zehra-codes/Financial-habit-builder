@@ -1,20 +1,18 @@
 function FinancialSummary({ income, expenses, transactions }) {
   const transactionIncome = transactions
-    .filter((transaction) => transaction.type === "Income")
+    .filter((transaction) => transaction.type === "income")
     .reduce(
-      (total, transaction) => total + transaction.amount,
+      (total, transaction) => total + Number(transaction.amount),
       0
     );
 
   const transactionExpenses = transactions
-    .filter((transaction) => transaction.type === "Expense")
+    .filter((transaction) => transaction.type === "expense")
     .reduce(
-      (total, transaction) => total + transaction.amount,
+      (total, transaction) => total + Number(transaction.amount),
       0
     );
 
-  // Use transaction totals when transactions exist.
-  // Otherwise use the manually entered financial data.
   const hasTransactions = transactions.length > 0;
 
   const totalIncome = hasTransactions
@@ -51,7 +49,6 @@ function FinancialSummary({ income, expenses, transactions }) {
 
       <div className="summary-grid">
 
-        {/* Income */}
         <div className="summary-card income-summary">
 
           <div className="summary-card-top">
@@ -74,7 +71,6 @@ function FinancialSummary({ income, expenses, transactions }) {
 
         </div>
 
-        {/* Expenses */}
         <div className="summary-card expense-summary">
 
           <div className="summary-card-top">
@@ -97,7 +93,6 @@ function FinancialSummary({ income, expenses, transactions }) {
 
         </div>
 
-        {/* Savings */}
         <div className="summary-card savings-summary">
 
           <div className="summary-card-top">
@@ -120,7 +115,6 @@ function FinancialSummary({ income, expenses, transactions }) {
 
         </div>
 
-        {/* Savings Rate */}
         <div className="summary-card rate-summary">
 
           <div className="summary-card-top">

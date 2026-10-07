@@ -126,7 +126,25 @@ app.delete("/api/transactions/:id", async (req, res) => {
     });
   }
 });
+// TEST CATEGORY
+app.get("/api/test-category", async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(
+      "6ac682147b7d24bb3eee717d"
+    );
 
+    res.json({
+      success: true,
+      schemaPaths: Object.keys(Transaction.schema.paths),
+      transaction,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
 // Start server
 app.listen(PORT, () => {
   console.log(

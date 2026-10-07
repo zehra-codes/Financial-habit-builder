@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -16,14 +16,34 @@ import "./App.css";
 function App() {
   const userName = "Qunoot";
 
-  const [income, setIncome] = useState(25000);
-  const [expenses, setExpenses] = useState(15000);
-
-  const [incomeInput, setIncomeInput] = useState(25000);
-  const [expensesInput, setExpensesInput] = useState(15000);
-
-  // Main transaction data for the whole dashboard
+  // Main transaction data for the whole application
   const [transactions, setTransactions] = useState([]);
+
+  // Load transactions from MongoDB when the app starts
+  useEffect(() => {
+    fetch("http://localhost:5000/api/transactions")
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          setTransactions(data.transactions);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading transactions:", error);
+      });
+  }, []);
+
+  // Calculate totals from MongoDB transactions
+  const income = transactions
+    .filter((transaction) => transaction.type === "income")
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+
+  const expenses = transactions
+    .filter((transaction) => transaction.type === "expense")
+    .reduce((total, transaction) => total + Number(transaction.amount), 0);
+
+  const [incomeInput, setIncomeInput] = useState("");
+  const [expensesInput, setExpensesInput] = useState("");
 
   return (
     <BrowserRouter>
@@ -37,8 +57,6 @@ function App() {
               userName={userName}
               income={income}
               expenses={expenses}
-              setIncome={setIncome}
-              setExpenses={setExpenses}
               incomeInput={incomeInput}
               expensesInput={expensesInput}
               setIncomeInput={setIncomeInput}
@@ -56,8 +74,6 @@ function App() {
               userName={userName}
               income={income}
               expenses={expenses}
-              setIncome={setIncome}
-              setExpenses={setExpenses}
               incomeInput={incomeInput}
               expensesInput={expensesInput}
               setIncomeInput={setIncomeInput}
@@ -87,26 +103,27 @@ function App() {
           path="/habits"
           element={<Habits />}
         />
-        <Route 
-          path="/wealth-analytics" 
-          element={<WealthAnalytics />} 
+
+        <Route
+          path="/wealth-analytics"
+          element={<WealthAnalytics />}
         />
-         <Route
+
+        <Route
           path="/admin"
           element={<AdminPanel />}
         />
-       <Route
-        path="/login"
-        element={<Login />}
-      />
 
         <Route
-         path="/register"
-        element={<Register />}
-       />
+          path="/login"
+          element={<Login />}
+        />
 
+        <Route
+          path="/register"
+          element={<Register />}
+        />
       </Routes>
-      
     </BrowserRouter>
   );
 }

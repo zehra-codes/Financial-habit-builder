@@ -19,13 +19,13 @@ const categories = [
 function TransactionTracker({ transactions, setTransactions }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState("Income");
+  const [type, setType] = useState("income");
   const [category, setCategory] = useState("Other");
   const [date, setDate] = useState(
     new Date().toISOString().split("T")[0]
   );
 
-  const [filterType, setFilterType] = useState("All");
+  const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterMonth, setFilterMonth] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -33,7 +33,7 @@ function TransactionTracker({ transactions, setTransactions }) {
   function resetForm() {
     setDescription("");
     setAmount("");
-    setType("Income");
+    setType("income");
     setCategory("Other");
     setDate(new Date().toISOString().split("T")[0]);
     setEditingId(null);
@@ -49,20 +49,22 @@ function TransactionTracker({ transactions, setTransactions }) {
     }
 
     try {
-      // UPDATE EXISTING TRANSACTION
+      const transactionData = {
+        type,
+        amount: numericAmount,
+        description: trimmedDescription,
+        category,
+        date,
+      };
+
+      // UPDATE
       if (editingId !== null) {
         const response = await fetch(`${API_URL}/${editingId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            type: type.toLowerCase(),
-            amount: numericAmount,
-            description: trimmedDescription,
-            category,
-            date,
-          }),
+          body: JSON.stringify(transactionData),
         });
 
         const data = await response.json();
@@ -76,10 +78,7 @@ function TransactionTracker({ transactions, setTransactions }) {
         const updatedTransaction = {
           ...data.transaction,
           id: data.transaction._id,
-          type:
-            data.transaction.type === "income"
-              ? "Income"
-              : "Expense",
+          type: data.transaction.type.toLowerCase(),
           date: data.transaction.date
             ? data.transaction.date.split("T")[0]
             : date,
@@ -95,20 +94,14 @@ function TransactionTracker({ transactions, setTransactions }) {
         );
       }
 
-      // ADD NEW TRANSACTION
+      // ADD
       else {
         const response = await fetch(API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            type: type.toLowerCase(),
-            amount: numericAmount,
-            description: trimmedDescription,
-            category,
-            date,
-          }),
+          body: JSON.stringify(transactionData),
         });
 
         const data = await response.json();
@@ -122,10 +115,7 @@ function TransactionTracker({ transactions, setTransactions }) {
         const savedTransaction = {
           ...data.transaction,
           id: data.transaction._id,
-          type:
-            data.transaction.type === "income"
-              ? "Income"
-              : "Expense",
+          type: data.transaction.type.toLowerCase(),
           date: data.transaction.date
             ? data.transaction.date.split("T")[0]
             : date,
@@ -150,7 +140,13 @@ function TransactionTracker({ transactions, setTransactions }) {
   function editTransaction(transaction) {
     setDescription(transaction.description);
     setAmount(String(transaction.amount));
-    setType(transaction.type);
+
+    setType(
+      transaction.type.toLowerCase() === "income"
+        ? "income"
+        : "expense"
+    );
+
     setCategory(transaction.category || "Other");
 
     setDate(
@@ -167,7 +163,6 @@ function TransactionTracker({ transactions, setTransactions }) {
     });
   }
 
-  // DELETE TRANSACTION FROM MONGODB
   async function deleteTransaction(id) {
     if (
       !window.confirm(
@@ -212,9 +207,12 @@ function TransactionTracker({ transactions, setTransactions }) {
 
   const filteredTransactions = transactions.filter(
     (transaction) => {
+      const transactionType =
+        transaction.type.toLowerCase();
+
       const matchesType =
-        filterType === "All" ||
-        transaction.type === filterType;
+        filterType === "all" ||
+        transactionType === filterType;
 
       const matchesCategory =
         filterCategory === "All" ||
@@ -238,7 +236,8 @@ function TransactionTracker({ transactions, setTransactions }) {
 
   const totalIncome = filteredTransactions
     .filter(
-      (transaction) => transaction.type === "Income"
+      (transaction) =>
+        transaction.type.toLowerCase() === "income"
     )
     .reduce(
       (total, transaction) =>
@@ -248,7 +247,8 @@ function TransactionTracker({ transactions, setTransactions }) {
 
   const totalExpenses = filteredTransactions
     .filter(
-      (transaction) => transaction.type === "Expense"
+      (transaction) =>
+        transaction.type.toLowerCase() === "expense"
     )
     .reduce(
       (total, transaction) =>
@@ -321,8 +321,8 @@ function TransactionTracker({ transactions, setTransactions }) {
               setType(event.target.value)
             }
           >
-            <option value="Income">Income</option>
-            <option value="Expense">Expense</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
           </select>
         </div>
 
@@ -398,9 +398,9 @@ function TransactionTracker({ transactions, setTransactions }) {
                 setFilterType(event.target.value)
               }
             >
-              <option value="All">All Types</option>
-              <option value="Income">Income</option>
-              <option value="Expense">Expense</option>
+              <option value="all">All Types</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
             </select>
           </div>
 
@@ -441,7 +441,7 @@ function TransactionTracker({ transactions, setTransactions }) {
             type="button"
             className="delete-button"
             onClick={() => {
-              setFilterType("All");
+              setFilterType("all");
               setFilterCategory("All");
               setFilterMonth("");
             }}
@@ -481,6 +481,9 @@ function TransactionTracker({ transactions, setTransactions }) {
                 const transactionId =
                   transaction._id || transaction.id;
 
+                const transactionType =
+                  transaction.type.toLowerCase();
+
                 const transactionDate =
                   transaction.date
                     ? transaction.date.split("T")[0]
@@ -489,7 +492,7 @@ function TransactionTracker({ transactions, setTransactions }) {
                 return (
                   <div
                     className={`transaction-item ${
-                      transaction.type === "Income"
+                      transactionType === "income"
                         ? "income-item"
                         : "expense-item"
                     }`}
@@ -497,7 +500,7 @@ function TransactionTracker({ transactions, setTransactions }) {
                   >
                     <div className="transaction-info">
                       <div className="transaction-icon">
-                        {transaction.type === "Income"
+                        {transactionType === "income"
                           ? "↑"
                           : "↓"}
                       </div>
@@ -508,7 +511,10 @@ function TransactionTracker({ transactions, setTransactions }) {
                         </strong>
 
                         <span>
-                          {transaction.type} •{" "}
+                          {transactionType === "income"
+                            ? "Income"
+                            : "Expense"}{" "}
+                          •{" "}
                           {transaction.category ||
                             "Other"}{" "}
                           • {transactionDate}
@@ -518,7 +524,7 @@ function TransactionTracker({ transactions, setTransactions }) {
 
                     <div className="transaction-right">
                       <strong>
-                        {transaction.type === "Income"
+                        {transactionType === "income"
                           ? "+"
                           : "-"}
                         ₹
