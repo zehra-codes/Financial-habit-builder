@@ -6,6 +6,8 @@ const mongoose = require("mongoose");
 const Transaction = require("./models/Transaction");
 const SavingsGoal = require("./models/SavingsGoal");
 const Habit = require("./models/Habit");
+const Investment = require("./models/Investment");
+const Asset = require("./models/Asset");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -341,6 +343,106 @@ app.delete("/api/habits/:id", async (req, res) => {
       success: true,
       message: "Habit deleted successfully!",
     });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+ // CREATE INVESTMENT
+app.post("/api/investments", async (req, res) => {
+  try {
+    const investment = await Investment.create(req.body);
+    res.status(201).json({ success: true, investment });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// GET ALL INVESTMENTS
+app.get("/api/investments", async (req, res) => {
+  try {
+    const investments = await Investment.find().sort({ createdAt: -1 });
+    res.json({ success: true, investments });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPDATE INVESTMENT
+app.put("/api/investments/:id", async (req, res) => {
+  try {
+    const investment = await Investment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!investment) {
+      return res.status(404).json({ success: false, message: "Investment not found" });
+    }
+    res.json({ success: true, investment });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE INVESTMENT
+app.delete("/api/investments/:id", async (req, res) => {
+  try {
+    const investment = await Investment.findByIdAndDelete(req.params.id);
+    if (!investment) {
+      return res.status(404).json({ success: false, message: "Investment not found" });
+    }
+    res.json({ success: true, message: "Investment deleted successfully" });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// CREATE ASSET
+app.post("/api/assets", async (req, res) => {
+  try {
+    const asset = await Asset.create(req.body);
+    res.status(201).json({ success: true, asset });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// GET ALL ASSETS
+app.get("/api/assets", async (req, res) => {
+  try {
+    const assets = await Asset.find().sort({ createdAt: -1 });
+    res.json({ success: true, assets });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPDATE ASSET
+app.put("/api/assets/:id", async (req, res) => {
+  try {
+    const asset = await Asset.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!asset) {
+      return res.status(404).json({ success: false, message: "Asset not found" });
+    }
+    res.json({ success: true, asset });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE ASSET
+app.delete("/api/assets/:id", async (req, res) => {
+  try {
+    const asset = await Asset.findByIdAndDelete(req.params.id);
+    if (!asset) {
+      return res.status(404).json({ success: false, message: "Asset not found" });
+    }
+    res.json({ success: true, message: "Asset deleted successfully" });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
