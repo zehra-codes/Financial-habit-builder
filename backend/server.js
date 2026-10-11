@@ -2,12 +2,16 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const mongoose = require("mongoose");
+const User = require("./models/User");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const Transaction = require("./models/Transaction");
 const SavingsGoal = require("./models/SavingsGoal");
 const Habit = require("./models/Habit");
 const Investment = require("./models/Investment");
 const Asset = require("./models/Asset");
+const Feedback = require("./models/Feedback");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -445,6 +449,205 @@ app.delete("/api/assets/:id", async (req, res) => {
     res.json({ success: true, message: "Asset deleted successfully" });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+function createAuthToken(user) {
+  return jwt.sign(
+    {
+      userId: user._id.toString(),
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+}
+
+// Register
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      typeof password !== "string" ||
+      password.length < 8 ||
+      password.length > 72
+    ) {
+      return res.status(400).json({
+        message: "Enter a valid name and email, and a password of 8–72 characters.",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        message: "An account with this email already exists.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+    });
+
+    const token = createAuthToken(user);
+
+    return res.status(201).json({
+      message: "Account created successfully.",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "An account with this email already exists.",
+      });
+    }
+
+    console.error("Registration error:", error.message);
+    return res.status(500).json({
+      message: "Registration failed. Please try again.",
+    });
+  }
+});
+
+// Login
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !email.trim() ||
+      !password ||
+      password.length > 72
+    ) {
+      return res.status(400).json({
+        message: "Enter your email and password.",
+      });
+    }
+
+    const user = await User.findOne({
+      email: email.trim().toLowerCase(),
+    }).select("+password");
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
+        message: "Invalid email or password.",
+      });
+    }
+
+    const token = createAuthToken(user);
+
+    return res.json({
+      message: "Login successful.",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error.message);
+    return res.status(500).json({
+      message: "Login failed. Please try again.",
+    });
+  }
+});
+
+ // GET ALL FEEDBACK
+app.get("/api/feedback", async (req, res) => {
+  try {
+    const feedback = await Feedback.find().sort({ createdAt: -1 });
+    res.json(feedback);
+  } catch (error) {
+    console.error("Fetch feedback error:", error.message);
+    res.status(500).json({ message: "Failed to load feedback." });
+  }
+});
+
+// CREATE FEEDBACK
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const { type, message } = req.body;
+
+    if (
+      !["Feedback", "Complaint"].includes(type) ||
+      typeof message !== "string" ||
+      !message.trim()
+    ) {
+      return res.status(400).json({
+        message: "A valid type and message are required.",
+      });
+    }
+
+    const feedback = await Feedback.create({
+      type,
+      message: message.trim(),
+    });
+
+    res.status(201).json(feedback);
+  } catch (error) {
+    console.error("Create feedback error:", error.message);
+    res.status(500).json({ message: "Failed to create feedback." });
+  }
+});
+
+// UPDATE FEEDBACK STATUS
+app.patch("/api/feedback/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["Open", "Resolved"].includes(status)) {
+      return res.status(400).json({
+        message: "Invalid feedback status.",
+      });
+    }
+
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        message: "Invalid feedback ID.",
+      });
+    }
+
+    const feedback = await Feedback.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    );
+
+    if (!feedback) {
+      return res.status(404).json({
+        message: "Feedback not found.",
+      });
+    }
+
+    res.json(feedback);
+  } catch (error) {
+    console.error("Update feedback error:", error.message);
+    res.status(500).json({
+      message: "Failed to update feedback status.",
+    });
   }
 });
 

@@ -1,26 +1,50 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 function Login() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
+    setMessage("");
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setMessage("Please enter your email and password.");
       return;
     }
 
-    setMessage("Login successful!");
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
-      navigate("/dashboard");
-    }, 500);
+      const response = await fetch(
+        "http://localhost:5000/api/auth/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed.");
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      setMessage(error.message || "Could not connect to the server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,33 +60,40 @@ function Login() {
 
         <form onSubmit={handleLogin} className="form-grid">
           <div>
-            <label>Email</label>
+            <label htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               type="email"
-              placeholder="Enter your email"
+              autoComplete="email"
+              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              placeholder="Enter your email"
             />
           </div>
 
           <div>
-            <label>Password</label>
+            <label htmlFor="login-password">Password</label>
             <input
+              id="login-password"
               type="password"
-              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter your password"
             />
           </div>
 
-          <button type="submit">Login</button>
+          <button type="submit" disabled={loading}>
+            {loading ? "Signing in..." : "Login"}
+          </button>
 
-          {message && <p>{message}</p>}
+          {message && <p role="alert">{message}</p>}
         </form>
 
         <p>
-          Don't have an account?{" "}
-          <Link to="/register">Create an account</Link>
+          Don't have an account? <Link to="/register">Create an account</Link>
         </p>
       </section>
     </main>

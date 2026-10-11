@@ -1,20 +1,27 @@
+
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 function Register() {
   const navigate = useNavigate();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (event) => {
+  const handleRegister = async (event) => {
     event.preventDefault();
+    setMessage("");
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setMessage("Please fill in all fields.");
+      return;
+    }
+
+    if (password.length < 8 || password.length > 72) {
+      setMessage("Password must be 8–72 characters long.");
       return;
     }
 
@@ -23,11 +30,37 @@ function Register() {
       return;
     }
 
-    setMessage("Registration successful!");
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
-      navigate("/login");
-    }, 700);
+      const response = await fetch(
+        "http://localhost:5000/api/auth/register",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Registration failed.");
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      setMessage(error.message || "Could not connect to the server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,53 +76,69 @@ function Register() {
 
         <form onSubmit={handleRegister} className="form-grid">
           <div>
-            <label>Name</label>
+            <label htmlFor="register-name">Name</label>
             <input
+              id="register-name"
               type="text"
-              placeholder="Enter your name"
+              autoComplete="name"
+              maxLength={80}
+              required
               value={name}
               onChange={(event) => setName(event.target.value)}
+              placeholder="Enter your name"
             />
           </div>
 
           <div>
-            <label>Email</label>
+            <label htmlFor="register-email">Email</label>
             <input
+              id="register-email"
               type="email"
-              placeholder="Enter your email"
+              autoComplete="email"
+              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
+              placeholder="Enter your email"
             />
           </div>
 
           <div>
-            <label>Password</label>
+            <label htmlFor="register-password">Password</label>
             <input
+              id="register-password"
               type="password"
-              placeholder="Create a password"
+              autoComplete="new-password"
+              minLength={8}
+              maxLength={72}
+              required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              placeholder="Create a password (at least 8 characters)"
             />
           </div>
 
           <div>
-            <label>Confirm Password</label>
+            <label htmlFor="confirm-password">Confirm Password</label>
             <input
+              id="confirm-password"
               type="password"
-              placeholder="Confirm your password"
+              autoComplete="new-password"
+              required
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
+              placeholder="Confirm your password"
             />
           </div>
 
-          <button type="submit">Create Account</button>
+          <button type="submit" disabled={loading}>
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
 
-          {message && <p>{message}</p>}
+          {message && <p role="alert">{message}</p>}
         </form>
 
         <p>
-          Already have an account?{" "}
-          <Link to="/login">Login</Link>
+          Already have an account? <Link to="/login">Login</Link>
         </p>
       </section>
     </main>
