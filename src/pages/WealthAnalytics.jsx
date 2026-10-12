@@ -1,31 +1,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-import { Line } from "react-chartjs-2";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 const API = "http://localhost:5000/api";
 
 const money = (amount) =>
-  `₹${Number(amount || 0).toLocaleString("en-IN")}`;
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(amount) || 0);
+
+const safeAmount = (amount) => Math.max(0, Number(amount) || 0);
 
 function WealthAnalytics() {
   const [investments, setInvestments] = useState([]);
@@ -63,9 +48,21 @@ function WealthAnalytics() {
       const [investmentData, assetData, transactionData] =
         await Promise.all(responses.map((response) => response.json()));
 
-      setInvestments(investmentData.investments || []);
-      setAssets(assetData.assets || []);
-      setTransactions(transactionData.transactions || []);
+      setInvestments(
+        Array.isArray(investmentData.investments)
+          ? investmentData.investments
+          : []
+      );
+
+      setAssets(
+        Array.isArray(assetData.assets) ? assetData.assets : []
+      );
+
+      setTransactions(
+        Array.isArray(transactionData.transactions)
+          ? transactionData.transactions
+          : []
+      );
     } catch (err) {
       setError(`${err.message} Check that the backend is running.`);
     } finally {
@@ -77,30 +74,62 @@ function WealthAnalytics() {
     loadData();
   }, [loadData]);
 
-  const totalIncome = transactions
-    .filter((item) => item.type === "income")
-    .reduce((total, item) => total + Number(item.amount || 0), 0);
-
-  const totalExpenses = transactions
-    .filter((item) => item.type === "expense")
-    .reduce((total, item) => total + Number(item.amount || 0), 0);
-
-  // This is net cash flow, not a verified bank balance or savings balance.
-  const estimatedSavings = totalIncome - totalExpenses;
-
-  const totalInvestments = investments.reduce(
-    (total, item) => total + Number(item.amount || 0),
-    0
+  const totalIncome = useMemo(
+    () =>
+      transactions
+        .filter(
+          (item) => String(item.type || "").toLowerCase() === "income"
+        )
+        .reduce((total, item) => total + safeAmount(item.amount), 0),
+    [transactions]
   );
 
-  const totalAssets = assets.reduce(
-    (total, item) => total + Number(item.amount || 0),
-    0
+  const totalExpenses = useMemo(
+    () =>
+      transactions
+        .filter(
+          (item) => String(item.type || "").toLowerCase() === "expense"
+        )
+        .reduce((total, item) => total + safeAmount(item.amount), 0),
+    [transactions]
   );
 
-  // Avoid double-counting: asset entries should exclude cash already
-  // represented by estimated savings and investments.
-  const netWorth = estimatedSavings + totalInvestments + totalAssets;
+  // Net cash flow is not a verified bank or savings balance.
+  const netCashFlow = totalIncome - totalExpenses;
+
+  const totalInvestments = useMemo(
+    () =>
+      investments.reduce(
+        (total, item) => total + safeAmount(item.amount),
+        0
+      ),
+    [investments]
+  );
+
+  const totalAssets = useMemo(
+    () =>
+      assets.reduce(
+        (total, item) => total + safeAmount(item.amount),
+        0
+      ),
+    [assets]
+  );
+
+  // Asset entries should exclude cash and investments already counted.
+  const estimatedNetWorth = netCashFlow + totalInvestments + totalAssets;
+
+  const totalRecordedWealth =
+    totalInvestments + totalAssets;
+
+  const investmentShare =
+    totalRecordedWealth > 0
+      ? (totalInvestments / totalRecordedWealth) * 100
+      : 0;
+
+  const assetShare =
+    totalRecordedWealth > 0
+      ? (totalAssets / totalRecordedWealth) * 100
+      : 0;
 
   const resetInvestmentForm = () => {
     setInvestmentName("");
@@ -121,28 +150,46 @@ function WealthAnalytics() {
     setError("");
 
     const isInvestment = kind === "investment";
-    const name = isInvestment ? investmentName.trim() : assetName.trim();
-    const type = isInvestment ? investmentType.trim() : assetType.trim();
-    const amountText = isInvestment ? investmentAmount : assetAmount;
-    const amount = Number(amountText);
-    const editing = isInvestment ? editingInvestment : editingAsset;
+    const name = isInvestment
+      ? investmentName.trim()
+      : assetName.trim();
 
-    if (!name || !type || !amountText || !Number.isFinite(amount) || amount <= 0) {
+    const type = isInvestment
+      ? investmentType.trim()
+      : assetType.trim();
+
+    const amountText = isInvestment
+      ? investmentAmount
+      : assetAmount;
+
+    const amount = Number(amountText);
+
+    const editing = isInvestment
+      ? editingInvestment
+      : editingAsset;
+
+    if (
+      !name ||
+      !type ||
+      !amountText ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
       setError("Enter a name, type, and amount greater than zero.");
       return;
     }
 
     const endpoint = isInvestment ? "investments" : "assets";
+
     const url = editing
       ? `${API}/${endpoint}/${editing._id}`
       : `${API}/${endpoint}`;
-    const method = editing ? "PUT" : "POST";
 
     setSaving(true);
 
     try {
       const response = await fetch(url, {
-        method,
+        method: editing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, type, amount }),
       });
@@ -168,12 +215,14 @@ function WealthAnalytics() {
     if (!window.confirm("Delete this record?")) return;
 
     setError("");
+
     const endpoint = kind === "investment" ? "investments" : "assets";
 
     try {
       const response = await fetch(`${API}/${endpoint}/${id}`, {
         method: "DELETE",
       });
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -186,194 +235,467 @@ function WealthAnalytics() {
     }
   };
 
-  const chartData = useMemo(() => ({
-    labels: ["Current"],
-    datasets: [
-      {
-        label: "Current Estimated Net Worth",
-        data: [netWorth],
-        borderWidth: 2,
-        tension: 0.3,
-      },
-    ],
-  }), [netWorth]);
+  const startEditingInvestment = (item) => {
+    setEditingInvestment(item);
+    setInvestmentName(item.name || "");
+    setInvestmentType(item.type || "");
+    setInvestmentAmount(String(item.amount ?? ""));
+    setError("");
+  };
 
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { display: true },
-      title: { display: true, text: "Current Estimated Net Worth" },
-      tooltip: {
-        callbacks: {
-          label: (context) => money(context.raw),
-        },
-      },
-    },
-    scales: {
-      y: {
-        ticks: {
-          callback: (value) => money(value),
-        },
-      },
-    },
+  const startEditingAsset = (item) => {
+    setEditingAsset(item);
+    setAssetName(item.name || "");
+    setAssetType(item.type || "");
+    setAssetAmount(String(item.amount ?? ""));
+    setError("");
   };
 
   if (loading) {
-    return <div className="page-container"><h1>Wealth Analytics</h1><p>Loading financial data...</p></div>;
+    return (
+      <main className="page-container wealth-page">
+        <div className="wealth-loading">
+          <span className="wealth-loading-ring" />
+          <h1>Wealth Analytics</h1>
+          <p>Gathering your financial overview...</p>
+        </div>
+      </main>
+    );
   }
 
   return (
-    <div className="page-container">
-      <h1>Wealth Analytics</h1>
-      <p>Track your transactions, investments, assets, and estimated wealth.</p>
+    <main className="page-container wealth-page">
+      {/* Page heading */}
+      <header className="wealth-hero">
+        <div>
+          <span className="section-label">YOUR MONEY, YOUR PROGRESS</span>
+          <h1>Wealth Analytics<span>.</span></h1>
+          <p>
+            Understand your cash flow, investments, and recorded assets
+            in one place.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="wealth-refresh"
+          onClick={loadData}
+          disabled={loading}
+        >
+          ↻ Refresh data
+        </button>
+      </header>
 
       {error && (
-        <p role="alert" style={{ color: "#ff6b6b" }}>
-          {error}
-        </p>
+        <div className="wealth-message" role="alert">
+          <span>!</span>
+          <p>{error}</p>
+          <button type="button" onClick={() => setError("")}>
+            Dismiss
+          </button>
+        </div>
       )}
 
-      <div className="summary-grid">
-        <div className="summary-card">
-          <h3>Net Cash Flow</h3>
-          <p>{money(estimatedSavings)}</p>
-          <small>Income minus recorded expenses; not a verified savings balance.</small>
-        </div>
-        <div className="summary-card">
-          <h3>Investments</h3>
-          <p>{money(totalInvestments)}</p>
-        </div>
-        <div className="summary-card">
-          <h3>Other Assets</h3>
-          <p>{money(totalAssets)}</p>
-        </div>
-        <div className="summary-card">
-          <h3>Estimated Net Worth</h3>
-          <p>{money(netWorth)}</p>
-        </div>
-      </div>
-
-      <section className="wealth-section">
-        <h2>{editingInvestment ? "Edit Investment" : "Add Investment"}</h2>
-        <form onSubmit={(event) => saveRecord(event, "investment")}>
-          <input
-            required
-            maxLength={100}
-            placeholder="Investment name"
-            value={investmentName}
-            onChange={(event) => setInvestmentName(event.target.value)}
-          />
-          <input
-            required
-            maxLength={100}
-            placeholder="Investment type"
-            value={investmentType}
-            onChange={(event) => setInvestmentType(event.target.value)}
-          />
-          <input
-            required
-            min="0.01"
-            step="0.01"
-            type="number"
-            placeholder="Amount (₹)"
-            value={investmentAmount}
-            onChange={(event) => setInvestmentAmount(event.target.value)}
-          />
-          <button type="submit" disabled={saving}>
-            {saving ? "Saving..." : editingInvestment ? "Update Investment" : "Add Investment"}
-          </button>
-          {editingInvestment && (
-            <button type="button" onClick={resetInvestmentForm}>Cancel</button>
-          )}
-        </form>
-      </section>
-
-      <section className="wealth-section">
-        <h2>Investments</h2>
-        {investments.length === 0 && <p>No investments added yet.</p>}
-        {investments.map((item) => (
-          <div key={item._id} className="wealth-record">
-            <strong>{item.name}</strong>
-            <p>{item.type} — {money(item.amount)}</p>
-            <button type="button" onClick={() => {
-              setEditingInvestment(item);
-              setInvestmentName(item.name);
-              setInvestmentType(item.type);
-              setInvestmentAmount(String(item.amount));
-            }}>Edit</button>{" "}
-            <button type="button" onClick={() => deleteRecord("investment", item._id)}>
-              Delete
-            </button>
+      {/* Summary */}
+      <section className="wealth-summary-grid">
+        <article className="wealth-summary-card wealth-summary-featured">
+          <div className="wealth-summary-top">
+            <span>ESTIMATED NET WORTH</span>
+            <span className="wealth-summary-symbol">₹</span>
           </div>
-        ))}
-      </section>
 
-      <section className="wealth-section">
-        <h2>{editingAsset ? "Edit Asset" : "Add Asset"}</h2>
-        <form onSubmit={(event) => saveRecord(event, "asset")}>
-          <input
-            required
-            maxLength={100}
-            placeholder="Asset name"
-            value={assetName}
-            onChange={(event) => setAssetName(event.target.value)}
-          />
-          <input
-            required
-            maxLength={100}
-            placeholder="Asset type"
-            value={assetType}
-            onChange={(event) => setAssetType(event.target.value)}
-          />
-          <input
-            required
-            min="0.01"
-            step="0.01"
-            type="number"
-            placeholder="Amount (₹)"
-            value={assetAmount}
-            onChange={(event) => setAssetAmount(event.target.value)}
-          />
-          <button type="submit" disabled={saving}>
-            {saving ? "Saving..." : editingAsset ? "Update Asset" : "Add Asset"}
-          </button>
-          {editingAsset && (
-            <button type="button" onClick={resetAssetForm}>Cancel</button>
-          )}
-        </form>
-      </section>
+          <strong className="wealth-summary-value">
+            {money(estimatedNetWorth)}
+          </strong>
 
-      <section className="wealth-section">
-        <h2>Assets</h2>
-        {assets.length === 0 && <p>No assets added yet.</p>}
-        {assets.map((item) => (
-          <div key={item._id} className="wealth-record">
-            <strong>{item.name}</strong>
-            <p>{item.type} — {money(item.amount)}</p>
-            <button type="button" onClick={() => {
-              setEditingAsset(item);
-              setAssetName(item.name);
-              setAssetType(item.type);
-              setAssetAmount(String(item.amount));
-            }}>Edit</button>{" "}
-            <button type="button" onClick={() => deleteRecord("asset", item._id)}>
-              Delete
-            </button>
+          <p>Based on recorded cash flow, investments, and assets</p>
+        </article>
+
+        <article className="wealth-summary-card">
+          <div className="wealth-summary-top">
+            <span>NET CASH FLOW</span>
+            <span className="wealth-mini-symbol">↗</span>
           </div>
-        ))}
+
+          <strong
+            className={
+              netCashFlow < 0
+                ? "wealth-negative"
+                : "wealth-positive"
+            }
+          >
+            {money(netCashFlow)}
+          </strong>
+
+          <p>Income minus recorded expenses</p>
+        </article>
+
+        <article className="wealth-summary-card">
+          <div className="wealth-summary-top">
+            <span>INVESTMENTS</span>
+            <span className="wealth-mini-symbol">◈</span>
+          </div>
+
+          <strong>{money(totalInvestments)}</strong>
+          <p>{investments.length} recorded investment(s)</p>
+        </article>
+
+        <article className="wealth-summary-card">
+          <div className="wealth-summary-top">
+            <span>OTHER ASSETS</span>
+            <span className="wealth-mini-symbol">◇</span>
+          </div>
+
+          <strong>{money(totalAssets)}</strong>
+          <p>{assets.length} recorded asset(s)</p>
+        </article>
       </section>
 
+      {/* Visual overview */}
+      <section className="wealth-section wealth-visual-section">
+        <div className="wealth-section-heading">
+          <div>
+            <span className="section-label">YOUR PORTFOLIO</span>
+            <h2>Wealth composition</h2>
+            <p>See how your recorded investments and assets compare.</p>
+          </div>
+        </div>
+
+        {totalRecordedWealth === 0 ? (
+          <div className="wealth-empty">
+            <span>◌</span>
+            <h3>Your portfolio starts here</h3>
+            <p>
+              Add an investment or asset to see your wealth composition.
+            </p>
+          </div>
+        ) : (
+          <div className="wealth-composition">
+            <div
+              className="wealth-composition-ring"
+              style={{
+                background: `conic-gradient(
+                  #D9A6A0 0% ${investmentShare}%,
+                  #9F233A ${investmentShare}% 100%
+                )`,
+              }}
+              role="img"
+              aria-label={`Investments ${investmentShare.toFixed(0)} percent, assets ${assetShare.toFixed(0)} percent`}
+            >
+              <div className="wealth-ring-center">
+                <span>RECORDED TOTAL</span>
+                <strong>{money(totalRecordedWealth)}</strong>
+              </div>
+            </div>
+
+            <div className="wealth-composition-details">
+              <div className="wealth-composition-row">
+                <span className="wealth-legend-dot investment-dot" />
+                <div>
+                  <strong>Investments</strong>
+                  <small>{investmentShare.toFixed(1)}% of recorded total</small>
+                </div>
+                <b>{money(totalInvestments)}</b>
+              </div>
+
+              <div className="wealth-composition-row">
+                <span className="wealth-legend-dot asset-dot" />
+                <div>
+                  <strong>Other assets</strong>
+                  <small>{assetShare.toFixed(1)}% of recorded total</small>
+                </div>
+                <b>{money(totalAssets)}</b>
+              </div>
+
+              <p className="wealth-note">
+                This view excludes net cash flow to avoid presenting it as
+                a verified cash balance. Ensure asset entries do not
+                duplicate investments.
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Investments */}
       <section className="wealth-section">
-        <h2>Wealth Growth</h2>
-        <p>Current estimated net worth: {money(netWorth)}</p>
-        <Line data={chartData} options={chartOptions} />
-        <small>
-          Historical records are not available yet, so this chart shows only the current estimate.
-        </small>
+        <div className="wealth-section-heading">
+          <div>
+            <span className="section-label">GROW YOUR PORTFOLIO</span>
+            <h2>{editingInvestment ? "Edit investment" : "Investments"}</h2>
+            <p>
+              Record investments and maintain their current recorded values.
+            </p>
+          </div>
+
+          <span className="wealth-count">{investments.length} records</span>
+        </div>
+
+        <form
+          className="wealth-form"
+          onSubmit={(event) => saveRecord(event, "investment")}
+        >
+          <label>
+            Investment name
+            <input
+              required
+              maxLength={100}
+              placeholder="e.g. Mutual fund"
+              value={investmentName}
+              onChange={(event) => setInvestmentName(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Investment type
+            <input
+              required
+              maxLength={100}
+              placeholder="e.g. Equity, FD"
+              value={investmentType}
+              onChange={(event) => setInvestmentType(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Amount (₹)
+            <input
+              required
+              min="0.01"
+              step="0.01"
+              type="number"
+              placeholder="Enter amount"
+              value={investmentAmount}
+              onChange={(event) => setInvestmentAmount(event.target.value)}
+            />
+          </label>
+
+          <div className="wealth-form-actions">
+            <button type="submit" disabled={saving}>
+              {saving
+                ? "Saving..."
+                : editingInvestment
+                  ? "Update investment"
+                  : "＋ Add investment"}
+            </button>
+
+            {editingInvestment && (
+              <button
+                type="button"
+                className="wealth-cancel-button"
+                onClick={resetInvestmentForm}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+
+        <div className="wealth-record-list">
+          {investments.length === 0 ? (
+            <div className="wealth-empty wealth-empty-compact">
+              <span>◈</span>
+              <h3>No investments yet</h3>
+              <p>Your added investments will appear here.</p>
+            </div>
+          ) : (
+            investments.map((item) => (
+              <article className="wealth-record" key={item._id}>
+                <div className="wealth-record-icon investment-record-icon">
+                  ◈
+                </div>
+
+                <div className="wealth-record-info">
+                  <strong>{item.name}</strong>
+                  <span>{item.type}</span>
+                </div>
+
+                <strong className="wealth-record-amount">
+                  {money(item.amount)}
+                </strong>
+
+                <div className="wealth-record-actions">
+                  <button
+                    type="button"
+                    onClick={() => startEditingInvestment(item)}
+                    aria-label={`Edit ${item.name}`}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    className="wealth-delete-button"
+                    onClick={() => deleteRecord("investment", item._id)}
+                    aria-label={`Delete ${item.name}`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
       </section>
 
-      <button type="button" onClick={loadData}>Refresh Financial Data</button>
-    </div>
+      {/* Assets */}
+      <section className="wealth-section">
+        <div className="wealth-section-heading">
+          <div>
+            <span className="section-label">WHAT YOU OWN</span>
+            <h2>{editingAsset ? "Edit asset" : "Other assets"}</h2>
+            <p>
+              Record assets that are not already included in your investments
+              or cash flow.
+            </p>
+          </div>
+
+          <span className="wealth-count">{assets.length} records</span>
+        </div>
+
+        <form
+          className="wealth-form"
+          onSubmit={(event) => saveRecord(event, "asset")}
+        >
+          <label>
+            Asset name
+            <input
+              required
+              maxLength={100}
+              placeholder="e.g. Gold, property"
+              value={assetName}
+              onChange={(event) => setAssetName(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Asset type
+            <input
+              required
+              maxLength={100}
+              placeholder="e.g. Gold, property"
+              value={assetType}
+              onChange={(event) => setAssetType(event.target.value)}
+            />
+          </label>
+
+          <label>
+            Amount (₹)
+            <input
+              required
+              min="0.01"
+              step="0.01"
+              type="number"
+              placeholder="Enter amount"
+              value={assetAmount}
+              onChange={(event) => setAssetAmount(event.target.value)}
+            />
+          </label>
+
+          <div className="wealth-form-actions">
+            <button type="submit" disabled={saving}>
+              {saving
+                ? "Saving..."
+                : editingAsset
+                  ? "Update asset"
+                  : "＋ Add asset"}
+            </button>
+
+            {editingAsset && (
+              <button
+                type="button"
+                className="wealth-cancel-button"
+                onClick={resetAssetForm}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+
+        <div className="wealth-record-list">
+          {assets.length === 0 ? (
+            <div className="wealth-empty wealth-empty-compact">
+              <span>◇</span>
+              <h3>No other assets yet</h3>
+              <p>Your added assets will appear here.</p>
+            </div>
+          ) : (
+            assets.map((item) => (
+              <article className="wealth-record" key={item._id}>
+                <div className="wealth-record-icon asset-record-icon">
+                  ◇
+                </div>
+
+                <div className="wealth-record-info">
+                  <strong>{item.name}</strong>
+                  <span>{item.type}</span>
+                </div>
+
+                <strong className="wealth-record-amount">
+                  {money(item.amount)}
+                </strong>
+
+                <div className="wealth-record-actions">
+                  <button
+                    type="button"
+                    onClick={() => startEditingAsset(item)}
+                    aria-label={`Edit ${item.name}`}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    className="wealth-delete-button"
+                    onClick={() => deleteRecord("asset", item._id)}
+                    aria-label={`Delete ${item.name}`}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Cash flow details */}
+      <section className="wealth-section wealth-cashflow-section">
+        <div className="wealth-section-heading">
+          <div>
+            <span className="section-label">INCOME & SPENDING</span>
+            <h2>Cash flow snapshot</h2>
+            <p>Totals from the transactions currently recorded in your app.</p>
+          </div>
+        </div>
+
+        <div className="wealth-cashflow-grid">
+          <div>
+            <span>Income</span>
+            <strong className="wealth-positive">{money(totalIncome)}</strong>
+          </div>
+
+          <div>
+            <span>Expenses</span>
+            <strong className="wealth-negative">{money(totalExpenses)}</strong>
+          </div>
+
+          <div>
+            <span>Net cash flow</span>
+            <strong className={netCashFlow < 0 ? "wealth-negative" : "wealth-positive"}>
+              {money(netCashFlow)}
+            </strong>
+          </div>
+        </div>
+
+        <p className="wealth-note">
+          Net cash flow is calculated from all recorded transactions, not from
+          a selected month or verified bank balance. Historical wealth growth
+          is not displayed because historical asset valuations are not stored.
+        </p>
+      </section>
+    </main>
   );
 }
 
