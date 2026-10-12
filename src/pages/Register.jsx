@@ -2,7 +2,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
-function Register() {
+function Register({ onRegister }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -52,10 +52,11 @@ function Register() {
         throw new Error(data.message || "Registration failed.");
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+     localStorage.setItem("token", data.token);
+     localStorage.setItem("user", JSON.stringify(data.user));
 
-      navigate("/dashboard", { replace: true });
+    onRegister?.();
+    navigate("/dashboard", { replace: true });
     } catch (error) {
       setMessage(error.message || "Could not connect to the server.");
     } finally {

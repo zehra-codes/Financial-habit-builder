@@ -1,6 +1,10 @@
+
 import { useState, useEffect } from "react";
 
 const API_URL = "http://localhost:5000/api/goals";
+
+const formatMoney = (amount) =>
+  `₹${Number(amount || 0).toLocaleString("en-IN")}`;
 
 function SavingsGoals() {
   const [goals, setGoals] = useState([]);
@@ -11,7 +15,6 @@ function SavingsGoals() {
   const [additionalAmount, setAdditionalAmount] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Load savings goals from MongoDB
   async function fetchGoals() {
     try {
       const response = await fetch(API_URL);
@@ -41,7 +44,6 @@ function SavingsGoals() {
     fetchGoals();
   }, []);
 
-  // Add a new savings goal
   async function addGoal() {
     const target = Number(targetAmount);
     const saved = Number(savedAmount || 0);
@@ -93,7 +95,6 @@ function SavingsGoals() {
     }
   }
 
-  // Add money to an existing goal in MongoDB
   async function addMoneyToGoal(goalId) {
     const amount = Number(additionalAmount);
     const goal = goals.find((item) => item.id === goalId);
@@ -110,22 +111,19 @@ function SavingsGoals() {
 
     if (goal.saved + amount > goal.target) {
       alert(
-        `You only need ₹${(
+        `You only need ${formatMoney(
           goal.target - goal.saved
-        ).toLocaleString("en-IN")} more for this goal.`
+        )} more for this goal.`
       );
       return;
     }
 
     try {
-      const response = await fetch(
-        `${API_URL}/${goalId}/add-money`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount }),
-        }
-      );
+      const response = await fetch(`${API_URL}/${goalId}/add-money`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
 
       const data = await response.json();
 
@@ -157,7 +155,6 @@ function SavingsGoals() {
     }
   }
 
-  // Delete a goal from MongoDB
   async function deleteGoal(goalId) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this savings goal?"
@@ -191,12 +188,12 @@ function SavingsGoals() {
   }
 
   const totalTarget = goals.reduce(
-    (total, goal) => total + Number(goal.target),
+    (total, goal) => total + goal.target,
     0
   );
 
   const totalSaved = goals.reduce(
-    (total, goal) => total + Number(goal.saved),
+    (total, goal) => total + goal.saved,
     0
   );
 
@@ -206,115 +203,176 @@ function SavingsGoals() {
       : Math.min(Math.round((totalSaved / totalTarget) * 100), 100);
 
   return (
-    <main className="dashboard">
-      {/* Add Savings Goal */}
-      <section className="card">
-        <div className="section-heading">
+    <main className="dashboard savings-page">
+      <header className="savings-page-header">
+        <div>
+          <span className="section-label">YOUR FINANCIAL FUTURE</span>
+          <h1>Savings Goals</h1>
+          <p>
+            Give your money a purpose. Set goals, build your savings,
+            and celebrate every milestone.
+          </p>
+        </div>
+
+        <div className="savings-header-badge">
+          <span className="savings-badge-icon">₹</span>
           <div>
-            <span className="section-label">SAVINGS PLANNER</span>
-            <h1>Savings Goals</h1>
-            <p>Set and track your financial savings goals.</p>
+            <strong>{goals.length}</strong>
+            <span>Active {goals.length === 1 ? "goal" : "goals"}</span>
+          </div>
+        </div>
+      </header>
+
+      <section className="savings-panel savings-create-panel">
+        <div className="savings-section-heading">
+          <div className="savings-heading-icon">+</div>
+          <div>
+            <span className="section-label">START PLANNING</span>
+            <h2>Create a Savings Goal</h2>
+            <p>Choose something you want to save for.</p>
           </div>
         </div>
 
-        <div className="update-form">
+        <form
+          className="savings-create-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            addGoal();
+          }}
+        >
           <div className="input-group">
-            <label>Goal Name</label>
+            <label htmlFor="goal-name">Goal name</label>
             <input
+              id="goal-name"
               type="text"
               placeholder="e.g. Emergency Fund"
               value={goalName}
               onChange={(event) => setGoalName(event.target.value)}
+              maxLength={80}
+              required
             />
           </div>
 
           <div className="input-group">
-            <label>Target Amount</label>
+            <label htmlFor="goal-target">Target amount</label>
             <div className="input-wrapper">
               <span>₹</span>
               <input
+                id="goal-target"
                 type="number"
                 min="1"
+                step="0.01"
                 placeholder="50000"
                 value={targetAmount}
                 onChange={(event) => setTargetAmount(event.target.value)}
+                required
               />
             </div>
           </div>
 
           <div className="input-group">
-            <label>Already Saved</label>
+            <label htmlFor="goal-saved">Already saved</label>
             <div className="input-wrapper">
               <span>₹</span>
               <input
+                id="goal-saved"
                 type="number"
                 min="0"
-                placeholder="15000"
+                step="0.01"
+                placeholder="0"
                 value={savedAmount}
                 onChange={(event) => setSavedAmount(event.target.value)}
               />
             </div>
           </div>
 
-          <button
-            type="button"
-            className="primary-button"
-            onClick={addGoal}
-          >
-            + Add Savings Goal
+          <button type="submit" className="primary-button savings-submit">
+            <span>+</span> Create Goal
           </button>
-        </div>
+        </form>
+
+        <p className="savings-form-note">
+          Tip: Start with a realistic target and build your savings gradually.
+        </p>
       </section>
 
-      {/* Overall Savings Summary */}
-      <section className="card">
-        <div className="section-heading">
+      <section className="savings-overview">
+        <div className="savings-overview-heading">
           <div>
-            <span className="section-label">SAVINGS OVERVIEW</span>
-            <h2>Overall Progress</h2>
-            <p>Track your progress across all savings goals.</p>
+            <span className="section-label">THE BIG PICTURE</span>
+            <h2>Your Savings Overview</h2>
           </div>
-          <strong>{overallProgress}%</strong>
+
+          <div className="savings-overall-progress">
+            <strong>{overallProgress}%</strong>
+            <span>Overall progress</span>
+          </div>
         </div>
 
-        <div className="totals-section">
-          <div className="total-box">
-            <span>Total Saved</span>
-            <strong>₹{totalSaved.toLocaleString("en-IN")}</strong>
-          </div>
+        <div className="savings-summary-grid">
+          <article className="savings-summary-card">
+            <span className="savings-summary-icon saved-icon">↗</span>
+            <span className="savings-summary-label">Total saved</span>
+            <strong>{formatMoney(totalSaved)}</strong>
+            <p>Money you've set aside</p>
+          </article>
 
-          <div className="total-box">
-            <span>Total Target</span>
-            <strong>₹{totalTarget.toLocaleString("en-IN")}</strong>
-          </div>
+          <article className="savings-summary-card">
+            <span className="savings-summary-icon target-icon">◎</span>
+            <span className="savings-summary-label">Total target</span>
+            <strong>{formatMoney(totalTarget)}</strong>
+            <p>Your combined savings targets</p>
+          </article>
 
-          <div className="total-box">
-            <span>Goals</span>
+          <article className="savings-summary-card">
+            <span className="savings-summary-icon goals-icon">✦</span>
+            <span className="savings-summary-label">Savings goals</span>
             <strong>{goals.length}</strong>
-          </div>
+            <p>Goals you're working toward</p>
+          </article>
+        </div>
+
+        <div
+          className="savings-overall-track"
+          role="progressbar"
+          aria-label="Overall savings progress"
+          aria-valuenow={overallProgress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div style={{ width: `${overallProgress}%` }} />
         </div>
       </section>
 
-      {/* Savings Goals */}
-      <section className="card">
-        <div className="section-heading">
+      <section className="savings-goals-section">
+        <div className="savings-goals-heading">
           <div>
-            <span className="section-label">YOUR GOALS</span>
+            <span className="section-label">ONE STEP AT A TIME</span>
             <h2>My Savings Goals</h2>
-            <p>Track your progress toward each goal.</p>
+            <p>Every contribution brings you closer to what matters.</p>
           </div>
+          <span className="savings-count">
+            {goals.length} {goals.length === 1 ? "goal" : "goals"}
+          </span>
         </div>
 
         {loading ? (
-          <p>Loading savings goals...</p>
+          <div className="savings-empty-state">
+            <div className="savings-empty-icon">↻</div>
+            <h3>Loading your goals</h3>
+            <p>Your savings information is on its way.</p>
+          </div>
         ) : goals.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">₹</div>
-            <h4>No savings goals yet</h4>
-            <p>Add your first savings goal above.</p>
+          <div className="savings-empty-state">
+            <div className="savings-empty-icon">₹</div>
+            <h3>Your next milestone starts here</h3>
+            <p>
+              You haven't created a savings goal yet. Add one above to
+              start tracking your progress.
+            </p>
           </div>
         ) : (
-          <div className="goals-grid">
+          <div className="savings-goals-grid">
             {goals.map((goal) => {
               const percentage =
                 goal.target > 0
@@ -324,91 +382,112 @@ function SavingsGoals() {
                     )
                   : 0;
 
-              const remaining = Math.max(
-                goal.target - goal.saved,
-                0
-              );
-
+              const remaining = Math.max(goal.target - goal.saved, 0);
               const isCompleted = percentage === 100;
+              const isAddingMoney = addingToGoal === goal.id;
 
               return (
-                <div key={goal.id} className="goal-card">
-                  <div className="goal-card-header">
-                    <div>
-                      <h2>{goal.name}</h2>
-                      <p>
-                        ₹{goal.saved.toLocaleString("en-IN")} saved of ₹
-                        {goal.target.toLocaleString("en-IN")}
-                      </p>
-                    </div>
-
-                    <span className="goal-percentage">
-                      {percentage}%
+                <article className="savings-goal-card" key={goal.id}>
+                  <div className="savings-goal-topline">
+                    <span className="savings-goal-symbol">₹</span>
+                    <span
+                      className={
+                        isCompleted
+                          ? "savings-status completed"
+                          : "savings-status in-progress"
+                      }
+                    >
+                      {isCompleted ? "✓ Completed" : "In progress"}
                     </span>
                   </div>
 
-                  <div className="progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{ width: `${percentage}%` }}
-                    />
+                  <div className="savings-goal-title-row">
+                    <h3>{goal.name}</h3>
+                    <strong className="savings-goal-percentage">
+                      {percentage}%
+                    </strong>
                   </div>
 
-                  <div className="goal-footer">
-                    {isCompleted ? (
-                      <strong className="goal-completed">
-                        ✓ Goal Completed
-                      </strong>
-                    ) : (
-                      <span>
-                        ₹{remaining.toLocaleString("en-IN")} remaining
-                      </span>
-                    )}
+                  <p className="savings-goal-amounts">
+                    <strong>{formatMoney(goal.saved)}</strong>
+                    <span> of {formatMoney(goal.target)}</span>
+                  </p>
+
+                  <div
+                    className="savings-goal-track"
+                    role="progressbar"
+                    aria-label={`${goal.name} progress`}
+                    aria-valuenow={percentage}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div style={{ width: `${percentage}%` }} />
+                  </div>
+
+                  <div className="savings-goal-remaining">
+                    <span>
+                      {isCompleted ? "Target reached" : "Still to save"}
+                    </span>
+                    <strong>
+                      {isCompleted ? "Well done!" : formatMoney(remaining)}
+                    </strong>
                   </div>
 
                   {!isCompleted && (
-                    <div className="update-form">
-                      {addingToGoal === goal.id ? (
-                        <>
-                          <div className="input-group">
-                            <label>Add Money</label>
-                            <div className="input-wrapper">
-                              <span>₹</span>
-                              <input
-                                type="number"
-                                min="1"
-                                placeholder="1000"
-                                value={additionalAmount}
-                                onChange={(event) =>
-                                  setAdditionalAmount(event.target.value)
-                                }
-                              />
-                            </div>
+                    <div className="savings-goal-actions">
+                      {isAddingMoney ? (
+                        <form
+                          className="savings-add-money-form"
+                          onSubmit={(event) => {
+                            event.preventDefault();
+                            addMoneyToGoal(goal.id);
+                          }}
+                        >
+                          <label htmlFor={`add-money-${goal.id}`}>
+                            Amount to add
+                          </label>
+
+                          <div className="input-wrapper">
+                            <span>₹</span>
+                            <input
+                              id={`add-money-${goal.id}`}
+                              type="number"
+                              min="0.01"
+                              step="0.01"
+                              max={remaining}
+                              placeholder="1000"
+                              value={additionalAmount}
+                              onChange={(event) =>
+                                setAdditionalAmount(event.target.value)
+                              }
+                              required
+                            />
                           </div>
 
-                          <button
-                            type="button"
-                            className="primary-button"
-                            onClick={() => addMoneyToGoal(goal.id)}
-                          >
-                            Add to Goal
-                          </button>
+                          <div className="savings-action-row">
+                            <button
+                              type="submit"
+                              className="primary-button"
+                            >
+                              Save Money
+                            </button>
 
-                          <button
-                            type="button"
-                            className="delete-button"
-                            onClick={() => {
-                              setAddingToGoal(null);
-                              setAdditionalAmount("");
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </>
+                            <button
+                              type="button"
+                              className="savings-cancel-button"
+                              onClick={() => {
+                                setAddingToGoal(null);
+                                setAdditionalAmount("");
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
                       ) : (
                         <button
                           type="button"
-                          className="primary-button"
+                          className="primary-button savings-add-button"
                           onClick={() => {
                             setAddingToGoal(goal.id);
                             setAdditionalAmount("");
@@ -420,16 +499,22 @@ function SavingsGoals() {
                     </div>
                   )}
 
-                  <div className="goal-footer">
+                  <div className="savings-goal-bottom">
+                    <span>
+                      {isCompleted
+                        ? "You've reached your goal!"
+                        : "Keep up the great progress"}
+                    </span>
+
                     <button
                       type="button"
-                      className="delete-button"
+                      className="savings-delete-button"
                       onClick={() => deleteGoal(goal.id)}
                     >
                       Delete
                     </button>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>

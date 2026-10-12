@@ -11,8 +11,13 @@ function Habits() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("success");
 
-  // Load habits from MongoDB
+  function showMessage(text, type = "success") {
+    setMessage(text);
+    setMessageType(type);
+  }
+
   useEffect(() => {
     async function fetchHabits() {
       try {
@@ -30,7 +35,11 @@ function Habits() {
           }))
         );
       } catch (error) {
-        setMessage(error.message || "Could not connect to the backend.");
+        console.error("Error loading habits:", error);
+        showMessage(
+          error.message || "Could not connect to the backend.",
+          "error"
+        );
       } finally {
         setLoading(false);
       }
@@ -39,12 +48,13 @@ function Habits() {
     fetchHabits();
   }, []);
 
-  // Add habit to MongoDB
-  async function addHabit() {
+  async function addHabit(event) {
+    if (event) event.preventDefault();
+
     const trimmedName = habitName.trim();
 
     if (!trimmedName) {
-      setMessage("Please enter a habit name.");
+      showMessage("Please enter a habit name.", "error");
       return;
     }
 
@@ -80,15 +90,15 @@ function Habits() {
       setHabitName("");
       setFrequency("Daily");
       setReminder("20:00");
-      setMessage("Habit saved successfully!");
+      showMessage("Your new habit has been saved successfully!");
     } catch (error) {
-      setMessage(error.message || "Could not save habit.");
+      console.error("Error adding habit:", error);
+      showMessage(error.message || "Could not save habit.", "error");
     } finally {
       setSaving(false);
     }
   }
 
-  // Update completion status in MongoDB
   async function toggleHabit(id) {
     const habit = habits.find((item) => item.id === id);
 
@@ -96,8 +106,8 @@ function Habits() {
 
     const newCompleted = !habit.completed;
     const newStreak = newCompleted
-      ? habit.streak + 1
-      : Math.max(0, habit.streak - 1);
+      ? Number(habit.streak || 0) + 1
+      : Math.max(0, Number(habit.streak || 0) - 1);
 
     setMessage("");
 
@@ -127,13 +137,17 @@ function Habits() {
         )
       );
 
-      setMessage("Habit updated successfully!");
+      showMessage(
+        newCompleted
+          ? "Habit marked as complete!"
+          : "Habit marked as incomplete."
+      );
     } catch (error) {
-      setMessage(error.message || "Could not update habit.");
+      console.error("Error updating habit:", error);
+      showMessage(error.message || "Could not update habit.", "error");
     }
   }
 
-  // Delete habit from MongoDB
   async function deleteHabit(id) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this habit?"
@@ -158,9 +172,10 @@ function Habits() {
         previous.filter((habit) => habit.id !== id)
       );
 
-      setMessage("Habit deleted successfully!");
+      showMessage("Habit deleted successfully.");
     } catch (error) {
-      setMessage(error.message || "Could not delete habit.");
+      console.error("Error deleting habit:", error);
+      showMessage(error.message || "Could not delete habit.", "error");
     }
   }
 
@@ -185,35 +200,57 @@ function Habits() {
       ? 0
       : Math.round(totalStreak / totalHabits);
 
+  const remainingHabits = totalHabits - completedHabits;
+
   return (
-    <main className="dashboard">
-      {/* Add Habit */}
-      <section className="card">
-        <div className="section-heading">
+    <main className="dashboard habits-page">
+      <header className="habits-page-header">
+        <div>
+          <span className="section-label">SMALL STEPS, BIG PROGRESS</span>
+          <h1>Financial Habits</h1>
+          <p>
+            Build consistent money habits, stay accountable, and make
+            progress toward your financial goals.
+          </p>
+        </div>
+
+        <div className="habits-header-badge">
+          <span className="habits-header-icon">✓</span>
           <div>
-            <span className="section-label">DAILY HABITS</span>
-            <h1>Financial Habits</h1>
-            <p>Build and track healthy financial habits.</p>
+            <strong>{completionPercentage}%</strong>
+            <span>Completion rate</span>
+          </div>
+        </div>
+      </header>
+
+      <section className="habits-panel">
+        <div className="habits-section-heading">
+          <div className="habits-heading-icon">+</div>
+          <div>
+            <span className="section-label">BUILD YOUR ROUTINE</span>
+            <h2>Create a New Habit</h2>
+            <p>Choose a habit you want to practise consistently.</p>
           </div>
         </div>
 
-        <div className="update-form">
+        <form className="habits-create-form" onSubmit={addHabit}>
           <div className="input-group">
-            <label>New Habit</label>
+            <label htmlFor="habit-name">Habit name</label>
             <input
+              id="habit-name"
               type="text"
-              placeholder="e.g. Track expenses"
+              placeholder="e.g. Track my expenses"
               value={habitName}
               onChange={(event) => setHabitName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") addHabit();
-              }}
+              maxLength={80}
+              required
             />
           </div>
 
           <div className="input-group">
-            <label>Frequency</label>
+            <label htmlFor="habit-frequency">Frequency</label>
             <select
+              id="habit-frequency"
               value={frequency}
               onChange={(event) => setFrequency(event.target.value)}
             >
@@ -224,8 +261,9 @@ function Habits() {
           </div>
 
           <div className="input-group">
-            <label>Reminder</label>
+            <label htmlFor="habit-reminder">Reminder time</label>
             <input
+              id="habit-reminder"
               type="time"
               value={reminder}
               onChange={(event) => setReminder(event.target.value)}
@@ -233,120 +271,192 @@ function Habits() {
           </div>
 
           <button
-            type="button"
-            className="primary-button"
-            onClick={addHabit}
+            type="submit"
+            className="primary-button habits-submit"
             disabled={saving}
           >
-            {saving ? "Saving..." : "+ Add Habit"}
+            {saving ? "Saving..." : "+ Create Habit"}
           </button>
-        </div>
+        </form>
+
+        <p className="habits-form-note">
+          Choose something manageable that fits naturally into your routine.
+        </p>
 
         {message && (
-          <p role="status" aria-live="polite">
-            {message}
-          </p>
+          <div
+            className={`habits-message ${messageType}`}
+            role="status"
+            aria-live="polite"
+          >
+            <span>{messageType === "error" ? "!" : "✓"}</span>
+            <p>{message}</p>
+            <button
+              type="button"
+              aria-label="Dismiss message"
+              onClick={() => setMessage("")}
+            >
+              ×
+            </button>
+          </div>
         )}
       </section>
 
-      {/* Habit Performance */}
-      <section className="card">
-        <div className="section-heading">
+      <section className="habits-performance">
+        <div className="habits-performance-heading">
           <div>
-            <span className="section-label">PERFORMANCE</span>
+            <span className="section-label">YOUR CONSISTENCY</span>
             <h2>Habit Performance</h2>
-            <p>
-              Track your completion rate and current habit streaks.
-            </p>
+            <p>A quick overview of your current habit progress.</p>
           </div>
-          <strong>{completionPercentage}%</strong>
         </div>
 
-        <div className="totals-section">
-          <div className="total-box">
-            <span>Completed Today</span>
+        <div className="habits-summary-grid">
+          <article className="habits-summary-card">
+            <span className="habits-summary-icon completed-icon">✓</span>
+            <span className="habits-summary-label">Completed</span>
             <strong>
-              {completedHabits}/{totalHabits}
+              {completedHabits}
+              <span> / {totalHabits}</span>
             </strong>
-          </div>
+            <p>Habits marked complete</p>
+          </article>
 
-          <div className="total-box">
-            <span>Completion Rate</span>
+          <article className="habits-summary-card">
+            <span className="habits-summary-icon rate-icon">↗</span>
+            <span className="habits-summary-label">Completion rate</span>
             <strong>{completionPercentage}%</strong>
-          </div>
+            <p>Based on your current habits</p>
+          </article>
 
-          <div className="total-box">
-            <span>Average Streak</span>
-            <strong>{averageStreak} days</strong>
-          </div>
+          <article className="habits-summary-card">
+            <span className="habits-summary-icon streak-icon">✦</span>
+            <span className="habits-summary-label">Average streak</span>
+            <strong>
+              {averageStreak}
+              <span> days</span>
+            </strong>
+            <p>Average recorded streak</p>
+          </article>
+        </div>
+
+        <div
+          className="habits-overall-track"
+          role="progressbar"
+          aria-label="Habit completion rate"
+          aria-valuenow={completionPercentage}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div style={{ width: `${completionPercentage}%` }} />
         </div>
       </section>
 
-      {/* Today's Progress */}
-      <section className="card">
-        <div className="section-heading">
+      <section className="habits-list-section">
+        <div className="habits-list-heading">
           <div>
-            <span className="section-label">TODAY'S PROGRESS</span>
+            <span className="section-label">YOUR ROUTINE</span>
             <h2>My Financial Habits</h2>
             <p>
-              {completedHabits} of {totalHabits} habits completed today.
+              {loading
+                ? "Loading your habits..."
+                : remainingHabits === 0 && totalHabits > 0
+                  ? "Every habit is marked complete. Great progress!"
+                  : `${completedHabits} completed · ${remainingHabits} remaining`}
             </p>
           </div>
+
+          <span className="habits-count">
+            {totalHabits} {totalHabits === 1 ? "habit" : "habits"}
+          </span>
         </div>
 
         {loading ? (
-          <p>Loading habits from MongoDB...</p>
+          <div className="habits-empty-state">
+            <div className="habits-empty-icon">↻</div>
+            <h3>Loading your habits</h3>
+            <p>Your saved habits are on their way.</p>
+          </div>
         ) : habits.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">✓</div>
-            <h4>No habits yet</h4>
+          <div className="habits-empty-state">
+            <div className="habits-empty-icon">✓</div>
+            <h3>Start building better money habits</h3>
             <p>
-              Add your first financial habit above to start tracking.
+              You haven't added any habits yet. Create your first one
+              above and start building a consistent routine.
             </p>
           </div>
         ) : (
-          <div className="habit-list">
+          <div className="habits-list">
             {habits.map((habit) => (
-              <div key={habit.id} className="habit-card">
-                <div>
-                  <h2>{habit.name}</h2>
+              <article
+                key={habit.id}
+                className={`habits-item ${
+                  habit.completed ? "is-completed" : ""
+                }`}
+              >
+                <div className="habits-item-main">
+                  <div
+                    className={`habits-completion-mark ${
+                      habit.completed ? "checked" : ""
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {habit.completed ? "✓" : "○"}
+                  </div>
 
-                  <p>
-                    {habit.completed
-                      ? "☑ Completed today"
-                      : "☐ Not completed yet"}
-                  </p>
+                  <div className="habits-item-content">
+                    <div className="habits-item-title-row">
+                      <h3>{habit.name}</h3>
+                      <span
+                        className={`habits-status ${
+                          habit.completed ? "done" : "pending"
+                        }`}
+                      >
+                        {habit.completed ? "Completed" : "In progress"}
+                      </span>
+                    </div>
 
-                  <p>Frequency: {habit.frequency}</p>
-
-                  <p>
-                    Current streak: {habit.streak} day
-                    {habit.streak !== 1 ? "s" : ""}
-                  </p>
-
-                  <p>Reminder: {habit.reminder}</p>
+                    <div className="habits-details">
+                      <span>
+                        <span className="habits-detail-symbol">↻</span>
+                        {habit.frequency}
+                      </span>
+                      <span>
+                        <span className="habits-detail-symbol">◷</span>
+                        {habit.reminder || "No reminder"}
+                      </span>
+                      <span>
+                        <span className="habits-detail-symbol">✦</span>
+                        {Number(habit.streak || 0)}{" "}
+                        {Number(habit.streak || 0) === 1 ? "day" : "days"} streak
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="habit-actions">
+                <div className="habits-item-actions">
                   <button
                     type="button"
-                    className="primary-button"
+                    className={
+                      habit.completed
+                        ? "habits-secondary-button"
+                        : "primary-button"
+                    }
                     onClick={() => toggleHabit(habit.id)}
                   >
-                    {habit.completed
-                      ? "Mark Incomplete"
-                      : "Mark Complete"}
+                    {habit.completed ? "Undo completion" : "✓ Mark complete"}
                   </button>
 
                   <button
                     type="button"
-                    className="delete-button"
+                    className="habits-delete-button"
                     onClick={() => deleteHabit(habit.id)}
                   >
                     Delete
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
