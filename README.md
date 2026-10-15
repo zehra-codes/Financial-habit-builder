@@ -21,3 +21,5 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ### Development Checkpoint
 - October 14, 2026: Final submission preparation.
+
+Submission verification checkpoint — 15 October 2026.
