@@ -52,11 +52,11 @@ function Register({ onRegister }) {
         throw new Error(data.message || "Registration failed.");
       }
 
-     localStorage.setItem("token", data.token);
-     localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-    onRegister?.();
-    navigate("/dashboard", { replace: true });
+      onRegister?.();
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       setMessage(error.message || "Could not connect to the server.");
     } finally {
@@ -65,83 +65,157 @@ function Register({ onRegister }) {
   };
 
   return (
-    <main className="dashboard">
-      <section className="card auth-card">
-        <div className="section-heading">
-          <div>
-            <span className="section-label">GET STARTED</span>
-            <h1>Create Account</h1>
-            <p>Create your account to start managing your finances.</p>
-          </div>
-        </div>
+    <main className="auth-page">
+      <div className="auth-shell auth-register-shell">
+        <section className="auth-story">
+          <Link to="/login" className="auth-brand">
+            <span className="auth-brand-mark">F</span>
+            <span>FINANCIAL HABIT BUILDER</span>
+          </Link>
 
-        <form onSubmit={handleRegister} className="form-grid">
-          <div>
-            <label htmlFor="register-name">Name</label>
-            <input
-              id="register-name"
-              type="text"
-              autoComplete="name"
-              maxLength={80}
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Enter your name"
-            />
-          </div>
+          <div className="auth-story-content">
+            <span className="auth-eyebrow">YOUR NEXT CHAPTER STARTS HERE</span>
+            <h1>
+              Small habits.
+              <br />
+              <span>Stronger finances.</span>
+            </h1>
+            <p>
+              Create your account and start building a clearer picture of your
+              money, savings goals, and financial habits.
+            </p>
 
-          <div>
-            <label htmlFor="register-email">Email</label>
-            <input
-              id="register-email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Enter your email"
-            />
-          </div>
+            <div className="auth-feature-list">
+              <div className="auth-feature">
+                <span className="auth-feature-icon">↗</span>
+                <div>
+                  <strong>Track your money</strong>
+                  <p>Keep income and expenses organised.</p>
+                </div>
+              </div>
 
-          <div>
-            <label htmlFor="register-password">Password</label>
-            <input
-              id="register-password"
-              type="password"
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Create a password (at least 8 characters)"
-            />
+              <div className="auth-feature">
+                <span className="auth-feature-icon">◎</span>
+                <div>
+                  <strong>Build better habits</strong>
+                  <p>Stay focused on your savings goals.</p>
+                </div>
+              </div>
+
+              <div className="auth-feature">
+                <span className="auth-feature-icon">✦</span>
+                <div>
+                  <strong>See your progress</strong>
+                  <p>Understand how your finances evolve.</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="confirm-password">Confirm Password</label>
-            <input
-              id="confirm-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              placeholder="Confirm your password"
-            />
+          <p className="auth-story-footer">Manage. Save. Grow.</p>
+        </section>
+
+        <section className="auth-form-panel">
+          <div className="auth-form-inner">
+            <Link to="/login" className="auth-mobile-brand">
+              <span className="auth-brand-mark">F</span>
+              <span>FINANCIAL HABIT BUILDER</span>
+            </Link>
+
+            <div className="auth-form-heading">
+              <span className="auth-eyebrow">GET STARTED</span>
+              <h2>Create your account</h2>
+              <p>Set up your account to begin your financial journey.</p>
+            </div>
+
+            <form onSubmit={handleRegister} className="auth-form">
+              <div className="auth-field">
+                <label htmlFor="register-name">Full name</label>
+                <input
+                  id="register-name"
+                  type="text"
+                  autoComplete="name"
+                  maxLength={80}
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="register-email">Email address</label>
+                <input
+                  id="register-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="register-password">Password</label>
+                <input
+                  id="register-password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={72}
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Create a password (8–72 characters)"
+                />
+                <span className="auth-field-hint">
+                  Use at least 8 characters.
+                </span>
+              </div>
+
+              <div className="auth-field">
+                <label htmlFor="confirm-password">Confirm password</label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={72}
+                  required
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Enter your password again"
+                />
+              </div>
+
+              {message && (
+                <p className="auth-error" role="alert">
+                  {message}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                className="auth-submit"
+                disabled={loading}
+              >
+                {loading ? "Creating account..." : "Create Account"}
+                {!loading && <span aria-hidden="true">→</span>}
+              </button>
+            </form>
+
+            <p className="auth-signup">
+              Already have an account? <Link to="/login">Log in</Link>
+            </p>
+
+            <div className="auth-security-note">
+              <span aria-hidden="true">◇</span>
+              Your financial journey starts with you.
+            </div>
           </div>
-
-          <button type="submit" disabled={loading}>
-            {loading ? "Creating account..." : "Create Account"}
-          </button>
-
-          {message && <p role="alert">{message}</p>}
-        </form>
-
-        <p>
-          Already have an account? <Link to="/login">Login</Link>
-        </p>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
