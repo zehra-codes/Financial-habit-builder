@@ -1,25 +1,122 @@
-# React + Vite
+﻿# Financial Habit Builder & Wealth Growth Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Manage. Save. Grow.**
 
-Currently, two official plugins are available:
+A full-stack personal finance application designed to help users track income and expenses, manage savings goals, build financial habits, and understand their recorded wealth.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Dashboard:** View a summary of your financial activity.
+- **Money Management:** Record and manage income and expenses.
+- **Savings Goals:** Create goals and track savings progress.
+- **Financial Habits:** Record and track financial habits.
+- **Wealth Analytics:** Review cash flow, investments, other assets, and estimated net worth.
+- **Authentication:** Register, log in, and access protected pages.
+- **Responsive Interface:** Dark-themed interface with red accents.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Technology Stack
 
-## Expanding the ESLint configuration
+### Frontend
+- React
+- Vite
+- React Router
+- Chart.js and react-chartjs-2
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Backend
+- Node.js
+- Express.js
+- MongoDB with Mongoose
+- JSON Web Tokens (JWT)
+- bcryptjs for password hashing
 
-### Day 14 - Project checkpoint
+## Project Structure
 
-## Project Update
+```text
+Financial-habit-builder/
+├── backend/
+│   ├── server.js
+│   └── package.json
+├── src/
+├── public/
+├── package.json
+└── README.md
+```
 
-### Development Checkpoint
-- October 14, 2026: Final submission preparation.
+## Run Locally
 
-Submission verification checkpoint � 15 October 2026.
+### Prerequisites
+- Node.js and npm
+- A MongoDB database
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/zehra-codes/Financial-habit-builder.git
+cd Financial-habit-builder
+```
+
+### 2. Install frontend dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure the backend
+
+```bash
+cd backend
+npm install
+```
+
+Create a `.env` file inside the `backend` directory with these variables:
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_long_random_secret
+```
+
+Replace the example values with your own configuration. Never commit `.env` files or expose credentials.
+
+### 4. Start the backend
+
+From the `backend` directory, run:
+
+```bash
+node server.js
+```
+
+### 5. Start the frontend
+
+Open a second terminal in the project root and run:
+
+```bash
+npm run dev
+```
+
+Open the local URL printed by Vite, usually `http://localhost:5173`.
+
+## Production Build
+
+From the project root, run:
+
+```bash
+npm run build
+```
+
+The production frontend files are generated in the `dist` directory.
+
+## Security Notes
+
+- Keep database credentials and JWT secrets private.
+- Configure production environment variables on the hosting platform.
+- Use HTTPS for the deployed application.
+- Never use real financial credentials as test data.
+
+## Project Repository
+
+GitHub: https://github.com/zehra-codes/Financial-habit-builder
+
+## Developer
+
+Qunoot Zehra
