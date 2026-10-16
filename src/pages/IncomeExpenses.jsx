@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import TransactionTracker from "../components/TransactionTracker";
-
+import API_BASE_URL from "../api";
 function IncomeExpenses({ transactions, setTransactions }) {
   useEffect(() => {
     async function loadTransactions() {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/transactions"
+          `${API_BASE_URL}/api/transactions`
         );
 
         if (!response.ok) {

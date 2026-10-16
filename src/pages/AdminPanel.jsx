@@ -1,7 +1,7 @@
-
+import API_BASE_URL from "../api";
 import { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:5000/api/feedback";
+const API_URL = `${API_BASE_URL}/api/feedback`;
 
 function AdminPanel() {
   const [users, setUsers] = useState([

@@ -1,7 +1,7 @@
-
+import API_BASE_URL from "../api";
 import { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:5000/api/habits";
+const API_URL = `${API_BASE_URL}/api/habits`;
 
 function Habits() {
   const [habits, setHabits] = useState([]);

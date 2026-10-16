@@ -1,7 +1,7 @@
-
+import API_BASE_URL from "../api";
 import { useState, useEffect } from "react";
 
-const API_URL = "http://localhost:5000/api/goals";
+const API_URL = `${API_BASE_URL}/api/goals`;
 
 const formatMoney = (amount) =>
   `₹${Number(amount || 0).toLocaleString("en-IN")}`;

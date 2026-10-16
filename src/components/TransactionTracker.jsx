@@ -1,6 +1,6 @@
 import { useState } from "react";
-
-const API_URL = "http://localhost:5000/api/transactions";
+import API_BASE_URL from "../api";
+const API_URL = `${API_BASE_URL}/api/transactions`;
 
 const categories = [
   "Salary",

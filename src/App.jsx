@@ -1,4 +1,4 @@
-
+import API_BASE_URL from "./api";
 import { useState, useEffect } from "react";
 import {
   BrowserRouter,
@@ -42,7 +42,7 @@ function AppContent() {
       return;
     }
 
-    fetch("http://localhost:5000/api/transactions", {
+    fetch(`${API_BASE_URL}/api/transactions`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((response) => {

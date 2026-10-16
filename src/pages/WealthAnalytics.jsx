@@ -1,7 +1,7 @@
-
+import API_BASE_URL from "../api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const API = "http://localhost:5000/api";
+const API = `${API_BASE_URL}/api`;
 
 const money = (amount) =>
   new Intl.NumberFormat("en-IN", {
