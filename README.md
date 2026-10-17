@@ -120,3 +120,12 @@ GitHub: https://github.com/zehra-codes/Financial-habit-builder
 ## Developer
 
 Qunoot Zehra
+
+## Deployment Progress
+
+- Frontend production build completed successfully.
+- Login and registration pages redesigned.
+- Frontend API configuration supports a deployment URL.
+- Backend start command configured.
+- Next: configure Render environment variables, deploy the backend and frontend, and test the live application.
+
