@@ -129,3 +129,7 @@ Qunoot Zehra
 - Backend start command configured.
 - Next: configure Render environment variables, deploy the backend and frontend, and test the live application.
 
+
+
+## Progress Update — 18 October 2026
+- Continued preparing the project for deployment and final submission.
